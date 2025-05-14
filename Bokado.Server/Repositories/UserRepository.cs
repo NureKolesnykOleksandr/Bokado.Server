@@ -1,0 +1,51 @@
+﻿using Bokado.Server.Data;
+using Bokado.Server.Dtos;
+using Bokado.Server.Interfaces;
+using Bokado.Server.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace Bokado.Server.Repositories
+{
+    public class UserRepository : IUserRepository
+    {
+        private readonly SocialNetworkContext _context;
+
+        public UserRepository(SocialNetworkContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<UserGetInfoDto> GetUserProfile(int userId)
+        {
+            User user = await _context.Users.Where(u=>u.UserId == userId).FirstOrDefaultAsync();
+            return new UserGetInfoDto()
+            {
+                AvatarUrl = user.AvatarUrl,
+                Status = user.Status,
+                Bio = user.Bio,
+                BirthDate = user.BirthDate,
+                City = user.City,
+                CreatedAt = user.CreatedAt,
+                IsAdmin = user.IsAdmin,
+                IsBanned = user.IsBanned, 
+                IsPremium = user.IsPremium, 
+                LastActive = user.LastActive, 
+                Level = user.Level,
+                UserId = userId,
+                Username = user.Username
+            };
+        }
+
+        public async Task UpdateUserProfile(int userId, User user)
+        {
+            User localUser = await _context.Users.Where(u => u.UserId == userId).FirstOrDefaultAsync();
+            if(localUser != null && localUser!=user)
+            {
+                localUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash); 
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+            }
+
+        }
+    }
+}
