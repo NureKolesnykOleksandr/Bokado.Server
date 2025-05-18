@@ -16,7 +16,7 @@ namespace Bokado.Server.Repositories
             throw new NotImplementedException();
         }
 
-        public Task<IdentityResult> SendMessage(int fromUserId, int toUserId)
+        public Task<IdentityResult> SendMessage(int fromUserId, int chatId, string message)
         {
             throw new NotImplementedException();
         }

@@ -5,7 +5,7 @@ namespace Bokado.Server.Interfaces
 {
     public interface IUserRepository
     {
-        Task<UserGetInfoDto> GetUserProfile(int userId);
+        Task<UserInfoDto> GetUserProfile(int userId);
         Task UpdateUserProfile(int userId, User user);
     }
 }

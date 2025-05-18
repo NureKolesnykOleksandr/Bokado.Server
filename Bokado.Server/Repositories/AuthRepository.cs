@@ -44,7 +44,7 @@ namespace Bokado.Server.Repositories
             return new AuthResultDTO
             {
                 Token = GenerateJwtToken(user),
-                User = new UserDto() { Email = user.Email, IsAdmin = false, PasswordHash = user.PasswordHash, UserId = userId, Username = user.Username}
+                User = new UserDto() { Email = user.Email, IsAdmin = false, UserId = userId, Username = user.Username}
             };
         }
 
@@ -57,13 +57,13 @@ namespace Bokado.Server.Repositories
             return new AuthResultDTO
             {
                 Token = GenerateJwtToken(user),
-                User = new UserDto() { Email = user.Email, IsAdmin = user.IsAdmin, PasswordHash = user.PasswordHash, UserId = user.UserId, Username = user.Username }
+                User = new UserDto() { Email = user.Email, IsAdmin = user.IsAdmin, UserId = user.UserId, Username = user.Username }
             };
         }
 
-        public async Task<bool> ResetPassword(string email)
+        public async Task<IdentityResult> ResetPassword(string email)
         {
-            return true;
+            return IdentityResult.Success;
         }
 
         private string GenerateJwtToken(User user)

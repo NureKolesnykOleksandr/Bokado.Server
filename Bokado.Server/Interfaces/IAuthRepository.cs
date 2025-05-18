@@ -1,4 +1,5 @@
 ﻿using Bokado.Server.Dtos;
+using Microsoft.AspNetCore.Identity;
 
 namespace Bokado.Server.Interfaces
 {
@@ -6,6 +7,6 @@ namespace Bokado.Server.Interfaces
     {
         Task<AuthResultDTO> Register(RegisterDTO dto);
         Task<AuthResultDTO> Login(LoginDTO dto);
-        Task<bool> ResetPassword(string email);
+        Task<IdentityResult> ResetPassword(string email);
     }
 }

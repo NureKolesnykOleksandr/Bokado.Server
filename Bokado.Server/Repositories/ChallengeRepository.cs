@@ -26,5 +26,10 @@ namespace Bokado.Server.Repositories
         {
             throw new NotImplementedException();
         }
+
+        public Task<IdentityResult> JoinEvent(int eventId, int userId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

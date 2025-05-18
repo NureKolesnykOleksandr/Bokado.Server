@@ -15,10 +15,10 @@ namespace Bokado.Server.Repositories
             _context = context;
         }
 
-        public async Task<UserGetInfoDto> GetUserProfile(int userId)
+        public async Task<UserInfoDto> GetUserProfile(int userId)
         {
             User user = await _context.Users.Where(u=>u.UserId == userId).FirstOrDefaultAsync();
-            return new UserGetInfoDto()
+            return new UserInfoDto()
             {
                 AvatarUrl = user.AvatarUrl,
                 Status = user.Status,

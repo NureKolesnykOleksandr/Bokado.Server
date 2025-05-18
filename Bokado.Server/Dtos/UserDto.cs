@@ -15,13 +15,10 @@ namespace Bokado.Server.Dtos
         [Required]
         public string Email { get; set; }
 
-        [Required]
-        public string PasswordHash { get; set; }
-
         public bool IsAdmin { get; set; } = false;
     }
 
-    public class UserGetInfoDto
+    public class UserInfoDto
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
