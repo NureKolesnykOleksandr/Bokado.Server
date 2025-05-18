@@ -56,7 +56,7 @@ namespace Bokado.Server.Data
                     UserId = 1,
                     Username = "admin",
                     Email = "admin@example.com",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("AdminPassword123"),
+                    PasswordHash = ("$2a$11$QVlAssqGxFq2bvc4kKYI4O/K/bD5UQpcClAbDS/f9W81551lIEgri"),
                     IsAdmin = true,
                     CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                     LastActive = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
