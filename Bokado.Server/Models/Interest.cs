@@ -1,6 +1,7 @@
 ﻿
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Bokado.Server.Models
 {
@@ -14,6 +15,7 @@ namespace Bokado.Server.Models
         [Required]
         public string Name { get; set; }
 
+        [JsonIgnore]
         public ICollection<UserInterest> UserInterests { get; set; }
     }
 }

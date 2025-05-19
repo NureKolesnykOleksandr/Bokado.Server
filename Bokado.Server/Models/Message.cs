@@ -18,15 +18,10 @@ namespace Bokado.Server.Models
 
         [Required]
         public string Text { get; set; }
-
         public string AttachmentUrl { get; set; }
-
         public bool IsGif { get; set; } = false;
-
         public DateTime SentAt { get; set; } = DateTime.UtcNow;
-
         public bool IsRead { get; set; } = false;
-
         public Chat Chat { get; set; }
         public User Sender { get; set; }
     }

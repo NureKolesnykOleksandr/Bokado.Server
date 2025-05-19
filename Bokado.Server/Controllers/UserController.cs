@@ -2,6 +2,8 @@
 using Bokado.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace Bokado.Server.Controllers
@@ -32,6 +34,55 @@ namespace Bokado.Server.Controllers
             }
         }
 
+        [HttpGet("GetDetail/{userId}")]
+        public async Task<IActionResult> GetDetailedUser(int userId)
+        {
+            try
+            {
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                var tuple = GetUserIdAndRoleFromToken(token);
+
+                if (tuple.userId != userId && tuple.role != "Admin")
+                {
+                    return Forbid();
+                }
+
+                var user = await _userRepository.GetDetailedUserInfo(userId);
+                return Ok(user);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+
+        private (int userId, string role) GetUserIdAndRoleFromToken(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            try
+            {
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+
+                var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    throw new SecurityTokenException("User ID not found in token or invalid format");
+                }
+
+                var roleClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "role");
+                if (roleClaim == null)
+                {
+                    throw new SecurityTokenException("Role not found in token");
+                }
+
+                return (userId, roleClaim.Value);
+            }
+            catch (Exception ex)
+            {
+                throw new SecurityTokenException("Invalid token format", ex);
+            }
+        }
         [HttpPut("{userId}")]
         public async Task<IActionResult> UpdateProfile(int userId, [FromBody] User user)
         {
