@@ -48,7 +48,7 @@ namespace Bokado.Server.Data
             modelBuilder.Entity<EventParticipant>().Property(ep => ep.EventParticipantId).UseIdentityAlwaysColumn();
             modelBuilder.Entity<UserChallenge>().Property(uc => uc.UserChallengeId).UseIdentityAlwaysColumn();
 
-            
+
 
             modelBuilder.Entity<User>().HasData(
                 new User
@@ -60,6 +60,89 @@ namespace Bokado.Server.Data
                     IsAdmin = true,
                     CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                     LastActive = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                }
+            );
+
+            modelBuilder.Entity<Challenge>().HasData(
+                new Challenge
+                {
+                    ChallengeId = 1,
+                    Title = "Соціальний старт",
+                    Description = "Почни спілкуватися з 3 різними людьми",
+                    Reward = 2,
+                    CreatedAt = new DateTime(2025,5, 21, 20, 30, 0, DateTimeKind.Utc)
+                },
+                new Challenge
+                {
+                    ChallengeId = 2,
+                    Title = "Активний учасник",
+                    Description = "Відправ 10 повідомлень у чатах",
+                    Reward = 2,
+                    CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, DateTimeKind.Utc)
+                },
+                new Challenge
+                {
+                    ChallengeId = 3,
+                    Title = "Знайомство з подією",
+                    Description = "Прийми участь у будь-якій події",
+                    Reward = 1,
+                    CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, DateTimeKind.Utc)
+                },
+                new Challenge
+                {
+                    ChallengeId = 4,
+                    Title = "Дружелюбний крок",
+                    Description = "Додай 5 нових людей у друзі",
+                    Reward = 2,
+                    CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, DateTimeKind.Utc)
+                },
+                new Challenge
+                {
+                    ChallengeId = 5,
+                    Title = "Чат-ентузіаст",
+                    Description = "Підтримуй бесіду в 3 різних чатах",
+                    Reward = 1,
+                    CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, DateTimeKind.Utc)
+                },
+                new Challenge
+                {
+                    ChallengeId = 6,
+                    Title = "Організатор",
+                    Description = "Створи власну подію",
+                    Reward = 3,
+                    CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, DateTimeKind.Utc)
+                },
+                new Challenge
+                {
+                    ChallengeId = 7,
+                    Title = "Дослідник",
+                    Description = "Знайди 7 людей зі спільними інтересами",
+                    Reward = 2,
+                    CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, DateTimeKind.Utc)
+                },
+                new Challenge
+                {
+                    ChallengeId = 8,
+                    Title = "Віртуальний зустріч",
+                    Description = "Відправ хоча б одне голосове повідомлення",
+                    Reward = 1,
+                    CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, DateTimeKind.Utc)
+                },
+                new Challenge
+                {
+                    ChallengeId = 9,
+                    Title = "Соціальний активіст",
+                    Description = "Відвідай 2 різні події за тиждень",
+                    Reward = 3,
+                    CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, DateTimeKind.Utc)
+                },
+                new Challenge
+                {
+                    ChallengeId = 10,
+                    Title = "Профільний експерт",
+                    Description = "Заповни всі поля свого профілю на 100%",
+                    Reward = 1,
+                    CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, DateTimeKind.Utc)
                 }
             );
 

@@ -3,6 +3,7 @@ using System;
 using Bokado.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Bokado.Server.Migrations
 {
     [DbContext(typeof(SocialNetworkContext))]
-    partial class SocialNetworkContextModelSnapshot : ModelSnapshot
+    [Migration("20250521182133_ChallengeUpdated")]
+    partial class ChallengeUpdated
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,98 +53,6 @@ namespace Bokado.Server.Migrations
                     b.HasKey("ChallengeId");
 
                     b.ToTable("challenges");
-
-                    b.HasData(
-                        new
-                        {
-                            ChallengeId = 1,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Почни спілкуватися з 3 різними людьми",
-                            IsActive = false,
-                            Reward = 2,
-                            Title = "Соціальний старт"
-                        },
-                        new
-                        {
-                            ChallengeId = 2,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Відправ 10 повідомлень у чатах",
-                            IsActive = false,
-                            Reward = 2,
-                            Title = "Активний учасник"
-                        },
-                        new
-                        {
-                            ChallengeId = 3,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Прийми участь у будь-якій події",
-                            IsActive = false,
-                            Reward = 1,
-                            Title = "Знайомство з подією"
-                        },
-                        new
-                        {
-                            ChallengeId = 4,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Додай 5 нових людей у друзі",
-                            IsActive = false,
-                            Reward = 2,
-                            Title = "Дружелюбний крок"
-                        },
-                        new
-                        {
-                            ChallengeId = 5,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Підтримуй бесіду в 3 різних чатах",
-                            IsActive = false,
-                            Reward = 1,
-                            Title = "Чат-ентузіаст"
-                        },
-                        new
-                        {
-                            ChallengeId = 6,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Створи власну подію",
-                            IsActive = false,
-                            Reward = 3,
-                            Title = "Організатор"
-                        },
-                        new
-                        {
-                            ChallengeId = 7,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Знайди 7 людей зі спільними інтересами",
-                            IsActive = false,
-                            Reward = 2,
-                            Title = "Дослідник"
-                        },
-                        new
-                        {
-                            ChallengeId = 8,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Відправ хоча б одне голосове повідомлення",
-                            IsActive = false,
-                            Reward = 1,
-                            Title = "Віртуальний зустріч"
-                        },
-                        new
-                        {
-                            ChallengeId = 9,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Відвідай 2 різні події за тиждень",
-                            IsActive = false,
-                            Reward = 3,
-                            Title = "Соціальний активіст"
-                        },
-                        new
-                        {
-                            ChallengeId = 10,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Заповни всі поля свого профілю на 100%",
-                            IsActive = false,
-                            Reward = 1,
-                            Title = "Профільний експерт"
-                        });
                 });
 
             modelBuilder.Entity("Bokado.Server.Models.Chat", b =>
@@ -299,12 +210,15 @@ namespace Bokado.Server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("MessageId"));
 
-                    b.Property<string>("Attachment")
+                    b.Property<string>("AttachmentUrl")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int>("ChatId")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("IsGif")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsRead")
                         .HasColumnType("boolean");

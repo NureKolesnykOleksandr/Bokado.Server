@@ -14,12 +14,10 @@ namespace Bokado.Server.Models
 
         [Required]
         public string Title { get; set; }
-
         public string Description { get; set; }
-
-        public string Reward { get; set; }
-
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public int Reward { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public bool IsActive { get; set; } = false;
 
         [JsonIgnore]
         public ICollection<UserChallenge> UserChallenges { get; set; }

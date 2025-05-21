@@ -83,7 +83,8 @@ namespace Bokado.Server.Repositories
             User localUser = await _context.Users.Where(u => u.UserId == userId).FirstOrDefaultAsync();
             if(localUser != null && localUser!=user)
             {
-                localUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash); 
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
+                user.Level = localUser.Level;
                 _context.Users.Update(user);
                 await _context.SaveChangesAsync();
             }
