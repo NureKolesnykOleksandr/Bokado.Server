@@ -38,9 +38,9 @@ namespace Bokado.Server.Controllers
                 var result = await _authRepo.Login(dto);
                 return Ok(result);
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
-                return Unauthorized();
+                return Unauthorized(ex.Message);
             }
         }
 

@@ -54,6 +54,11 @@ namespace Bokado.Server.Repositories
             if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid credentials");
 
+            if (user.IsBanned && !user.IsAdmin)
+            {
+                throw new UnauthorizedAccessException("U SHALL NOT PASS!(u are banned, sorry 😢)");
+            }
+
             return new AuthResultDTO
             {
                 Token = GenerateJwtToken(user),

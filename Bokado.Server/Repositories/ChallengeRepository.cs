@@ -103,10 +103,35 @@ namespace Bokado.Server.Repositories
                 return IdentityResult.Failed(new IdentityError { Description = "Challenge is not active" });
             }
 
+            UserChallenge userChallenge = await _context.UserChallenges.Where(uc =>uc.IsCompleted && uc.UserId == userId && uc.ChallengeId==challengeId).FirstOrDefaultAsync();
+
+            if (userChallenge != null)
+            {
+                return IdentityResult.Success;
+            }
+
             try
             {
                 if (conditions[challengeId].Invoke(userId)==true)
                 {
+                    userChallenge = new UserChallenge() 
+                    { 
+                        ChallengeId =  challengeId , 
+                        UserId = userId, 
+                        IsCompleted = true, 
+                        CompletedAt = DateTime.UtcNow
+                    };
+
+                    _context.Add(userChallenge);
+                    await _context.Users
+                        .Where(u => u.UserId == userId)
+                        .ExecuteUpdateAsync(setters => setters
+                            .SetProperty(u => u.Level, u => u.Level + challenge.Reward)
+                        );
+
+                    await _context.SaveChangesAsync();
+
+
                     return IdentityResult.Success;
                 }
                 return IdentityResult.Failed(new IdentityError { Description = "Challenge failed" });
@@ -119,29 +144,51 @@ namespace Bokado.Server.Repositories
 
         public async Task<Event> CreateEvent(EventDto eventDto, int creatorId)
         {
-            throw new NotImplementedException();
-        
-            
+            var newEvent = new Event()
+            {
+                City = eventDto.City,
+                CreatedAt = DateTime.UtcNow,
+                CreatorId = creatorId,
+                Date = eventDto.Date.ToUniversalTime(),
+                Description = eventDto.Description,
+                Title = eventDto.Title
+            };
+
+            await _context.Events.AddAsync(newEvent);
+
+            await _context.SaveChangesAsync();
+
+            var participant = new EventParticipant()
+            {
+                EventId = newEvent.EventId,
+                UserId = creatorId,
+                JoinedAt = DateTime.UtcNow
+            };
+
+            await _context.EventParticipants.AddAsync(participant);
+            await _context.SaveChangesAsync();
+
+            return newEvent;
         }
 
         public async Task<List<Challenge>> GetChallenges()
         {
-            throw new NotImplementedException();
-        }
-
-        public async Task<List<Challenge>> GetaAllChallenges()
-        {
-            throw new NotImplementedException();
+            var challenges = await _context.Challenges.Where(c=>c.IsActive).ToListAsync();
+            return challenges;
         }
 
         public async Task<List<Event>> GetEvents()
         {
-            throw new NotImplementedException();
+            var events = await _context.Events.ToListAsync();
+            return events;
         }
 
         public async Task<IdentityResult> JoinEvent(int eventId, int userId)
         {
-            throw new NotImplementedException();
+            var newParticipant = _context.EventParticipants.Add(new EventParticipant() { EventId = eventId, UserId = userId, JoinedAt = DateTime.UtcNow });
+            await _context.SaveChangesAsync();
+
+            return IdentityResult.Success;
         }
     }
 }
