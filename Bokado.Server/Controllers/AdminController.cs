@@ -65,5 +65,12 @@ namespace Bokado.Server.Controllers
             var challenges = await _adminRepository.GetaAllChallenges();
             return Ok(challenges);
         }
+
+        [HttpGet("allUsers")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var users = await _adminRepository.GetaAllUsers();
+            return Ok(users);
+        }
     }
 }

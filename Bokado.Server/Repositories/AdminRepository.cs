@@ -1,4 +1,5 @@
 ﻿using Bokado.Server.Data;
+using Bokado.Server.Dtos;
 using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
 using Microsoft.AspNetCore.Identity;
@@ -52,9 +53,9 @@ namespace Bokado.Server.Repositories
 
                 return IdentityResult.Success;
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
-                return IdentityResult.Failed(new IdentityError { Description = ex.Message });    
+                return IdentityResult.Failed(new IdentityError { Description = ex.Message });
             }
         }
 
@@ -74,10 +75,51 @@ namespace Bokado.Server.Repositories
             return IdentityResult.Success;
         }
 
-        public async Task<List<Models.Challenge>> GetaAllChallenges()
+        public async Task<IEnumerable<Models.Challenge>> GetaAllChallenges()
         {
             var challenges = await _context.Challenges.ToListAsync();
             return challenges;
         }
+
+        public async Task<IEnumerable<UserDetailInfoDto>> GetaAllUsers()
+        {
+
+            List<User> users = await _context.Users
+                .Include(u => u.UserInterests)
+                .Include(u => u.Friends)
+                .Include(u => u.Swipes)
+                .Include(u => u.ChatParticipants)
+                .Include(u => u.EventParticipants)
+                .Include(u => u.UserChallenges)
+                .Include(u => u.Messages)
+                .Include(u => u.CreatedEvents)
+                .ToListAsync();
+
+            return users.Select(user => new UserDetailInfoDto()
+            {
+                Email = user.Email,
+                AvatarUrl = user.AvatarUrl,
+                Status = user.Status,
+                Bio = user.Bio,
+                BirthDate = user.BirthDate,
+                City = user.City,
+                CreatedAt = user.CreatedAt,
+                IsAdmin = user.IsAdmin,
+                IsBanned = user.IsBanned,
+                IsPremium = user.IsPremium,
+                LastActive = user.LastActive,
+                Level = user.Level,
+                UserId = user.UserId,
+                Username = user.Username,
+                Swipes = user.Swipes,
+                ChatParticipants = user.ChatParticipants,
+                CreatedEvents = user.CreatedEvents,
+                EventParticipants = user.EventParticipants,
+                Friends = user.Friends,
+                Messages = user.Messages,
+                UserChallenges = user.UserChallenges,
+                UserInterests = user.UserInterests
+            });
+        } 
     }
 }

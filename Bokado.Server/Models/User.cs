@@ -34,20 +34,20 @@ namespace Bokado.Server.Models
         public DateTime LastActive { get; set; } = DateTime.UtcNow;
 
         [JsonIgnore]
-        public ICollection<UserInterest> UserInterests { get; set; }
+        public ICollection<UserInterest>? UserInterests { get; set; }
         [JsonIgnore]
-        public ICollection<Friendship> Friends { get; set; }
+        public ICollection<Friendship>? Friends { get; set; }
         [JsonIgnore]
-        public ICollection<Swipe> Swipes { get; set; }
+        public ICollection<Swipe>? Swipes { get; set; }
         [JsonIgnore]
-        public ICollection<ChatParticipant> ChatParticipants { get; set; }
+        public ICollection<ChatParticipant>? ChatParticipants { get; set; }
         [JsonIgnore]
-        public ICollection<EventParticipant> EventParticipants { get; set; }
+        public ICollection<EventParticipant>? EventParticipants { get; set; }
         [JsonIgnore]
-        public ICollection<UserChallenge> UserChallenges { get; set; }
+        public ICollection<UserChallenge>? UserChallenges { get; set; }
         [JsonIgnore]
-        public ICollection<Message> Messages { get; set; }
+        public ICollection<Message>? Messages { get; set; }
         [JsonIgnore]
-        public ICollection<Event> CreatedEvents { get; set; }
+        public ICollection<Event>? CreatedEvents { get; set; }
     }
 }

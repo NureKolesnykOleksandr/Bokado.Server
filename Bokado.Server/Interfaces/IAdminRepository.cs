@@ -1,4 +1,5 @@
-﻿using Bokado.Server.Models;
+﻿using Bokado.Server.Dtos;
+using Bokado.Server.Models;
 using Microsoft.AspNetCore.Identity;
 
 namespace Bokado.Server.Interfaces
@@ -8,7 +9,8 @@ namespace Bokado.Server.Interfaces
         Task<IdentityResult> BanUser(int userId);
         Task<IdentityResult> UnbanUser(int userId);
         Task<IdentityResult> SelectChallenges(ICollection<int> challengeIds);
-        Task<List<Challenge>> GetaAllChallenges();
+        Task<IEnumerable<Challenge>> GetaAllChallenges();
+        Task<IEnumerable<UserDetailInfoDto>> GetaAllUsers();
 
     }
 }

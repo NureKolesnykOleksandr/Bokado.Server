@@ -80,14 +80,26 @@ namespace Bokado.Server.Repositories
 
         public async Task UpdateUserProfile(int userId, User user)
         {
-            User localUser = await _context.Users.Where(u => u.UserId == userId).FirstOrDefaultAsync();
-            if(localUser != null && localUser!=user)
+            var localUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+
+            if (localUser == null)
             {
-                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
-                user.Level = localUser.Level;
-                _context.Users.Update(user);
-                await _context.SaveChangesAsync();
+                throw new ArgumentException("User not found");
             }
+
+            localUser.AvatarUrl = user.AvatarUrl;
+            localUser.Status = user.Status;
+            localUser.Bio = user.Bio;
+            localUser.BirthDate = user.BirthDate;
+            localUser.City = user.City;
+            localUser.Username = user.Username;
+
+            if (!string.IsNullOrEmpty(user.PasswordHash))
+            {
+                localUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
+            }
+
+            await _context.SaveChangesAsync();
 
         }
     }
