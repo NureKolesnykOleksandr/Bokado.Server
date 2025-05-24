@@ -3,6 +3,8 @@ using Bokado.Server.Dtos;
 using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
 using Microsoft.EntityFrameworkCore;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
+using System.Threading;
 
 namespace Bokado.Server.Repositories
 {
@@ -78,29 +80,89 @@ namespace Bokado.Server.Repositories
             };
         }
 
-        public async Task UpdateUserProfile(int userId, User user)
+        public async Task UpdateUserProfile(int userId, UpdateUserDto user)
         {
-            var localUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            var localUser = await _context.Users
+                .Include(u => u.UserInterests)
+                .FirstOrDefaultAsync(u => u.UserId == userId);
 
             if (localUser == null)
             {
                 throw new ArgumentException("User not found");
             }
 
-            localUser.AvatarUrl = user.AvatarUrl;
-            localUser.Status = user.Status;
-            localUser.Bio = user.Bio;
-            localUser.BirthDate = user.BirthDate;
-            localUser.City = user.City;
-            localUser.Username = user.Username;
-
-            if (!string.IsNullOrEmpty(user.PasswordHash))
+            if (user.UserIcon != null)
             {
-                localUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
+                string webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Icons");
+                Directory.CreateDirectory(webRootPath);
+
+                // Получаем расширение файла
+                var fileExtension = Path.GetExtension(user.UserIcon.FileName).ToLower();
+
+                // Генерируем имя файла с сохранением расширения
+                var imageFileName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(user.Username)}{fileExtension}";
+                var imageDestinationPath = Path.Combine(webRootPath, imageFileName);
+
+                // Проверяем допустимые расширения (опционально)
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                if (!allowedExtensions.Contains(fileExtension))
+                {
+                    throw new ArgumentException("Invalid file format. Allowed formats: " + string.Join(", ", allowedExtensions));
+                }
+
+                using (var stream = new FileStream(imageDestinationPath, FileMode.Create))
+                {
+                    await user.UserIcon.CopyToAsync(stream);
+                }
+
+                localUser.AvatarUrl = $"/Icons/{imageFileName}";
+            }
+
+            // Обновляем основные данные пользователя
+            localUser.Username = user.Username;
+            localUser.BirthDate = user.BirthDate;
+            localUser.Bio = user.Bio;
+            localUser.Status = user.Status;
+            localUser.City = user.City;
+
+            if (!string.IsNullOrEmpty(user.Password))
+            {
+                localUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.Password);
+            }
+
+            // Обновляем интересы пользователя
+            if (user.UserInterestsIds != null && user.UserInterestsIds.Any())
+            {
+                var allInterests = await _context.Interests
+                    .Where(i => user.UserInterestsIds.Contains(i.InterestId))
+                    .ToListAsync();
+
+                if (allInterests.Count != user.UserInterestsIds.Distinct().Count())
+                {
+                    throw new KeyNotFoundException("One or more interests were not found");
+                }
+
+                var currentInterestIds = localUser.UserInterests.Select(ui => ui.InterestId).ToList();
+                var interestsToAdd = user.UserInterestsIds.Except(currentInterestIds).ToList();
+                var interestsToRemove = currentInterestIds.Except(user.UserInterestsIds).ToList();
+
+                foreach (var interestId in interestsToAdd)
+                {
+                    localUser.UserInterests.Add(new UserInterest { InterestId = interestId, UserId = userId });
+                }
+
+                foreach (var interestId in interestsToRemove)
+                {
+                    var ui = localUser.UserInterests.First(ui => ui.InterestId == interestId);
+                    _context.UserInterests.Remove(ui);
+                }
+            }
+            else
+            {
+                _context.UserInterests.RemoveRange(localUser.UserInterests);
             }
 
             await _context.SaveChangesAsync();
-
         }
     }
 }

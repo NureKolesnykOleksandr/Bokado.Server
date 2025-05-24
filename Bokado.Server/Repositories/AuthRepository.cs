@@ -9,6 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Identity;
 using Bokado.Server.Data;
+using Bokado.Server.Services;
 
 namespace Bokado.Server.Repositories
 {
@@ -16,11 +17,21 @@ namespace Bokado.Server.Repositories
     {
         private readonly SocialNetworkContext _context;
         private readonly IConfiguration _config;
+        private readonly EmailService _emailService;
 
-        public AuthRepository(SocialNetworkContext context, IConfiguration config)
+        public AuthRepository(SocialNetworkContext context, IConfiguration config, EmailService emailService)
         {
             _context = context;
             _config = config;
+            _emailService = emailService;
+        }
+
+        private static string GenerateRandomPassword()
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+            var random = new Random();
+            return new string(Enumerable.Repeat(chars, 6)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
         public async Task<AuthResultDTO> Register(RegisterDTO dto)
@@ -68,6 +79,32 @@ namespace Bokado.Server.Repositories
 
         public async Task<IdentityResult> ResetPassword(string email)
         {
+            User? user = await _context.Users.Where(u => u.Email == email).FirstOrDefaultAsync();
+
+            if (user == null)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "User was not found"});
+            }
+
+            string password = GenerateRandomPassword();
+
+            string text = $"Hi dear {user.Username}" +
+                $"Your password was reset to {password}" +
+                $"Have a nice day." +
+                $"I love u my kitty)";
+            try
+            {
+                _emailService.SendEmail(email, "Password Reset", text);
+            }
+            catch
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "" });
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+
+            await _context.SaveChangesAsync();
+
             return IdentityResult.Success;
         }
 

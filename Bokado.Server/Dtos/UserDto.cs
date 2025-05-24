@@ -41,6 +41,19 @@ namespace Bokado.Server.Dtos
         public DateTime CreatedAt { get; set; }
         public DateTime LastActive { get; set; }
     }
+
+    public class UpdateUserDto 
+    {
+        public IFormFile? UserIcon { get; set; }
+        public string Username { get; set; }
+        public DateTime BirthDate { get; set; }
+        public string? Bio { get; set; }
+        public string? Status { get; set; }
+        public string? Password { get; set; }
+        public string? City { get; set; }
+        public ICollection<int>? UserInterestsIds { get; set; }
+    }
+
     public class UserDetailInfoDto
     {
         [Key]

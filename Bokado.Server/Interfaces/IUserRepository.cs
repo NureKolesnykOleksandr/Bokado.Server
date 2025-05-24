@@ -7,6 +7,6 @@ namespace Bokado.Server.Interfaces
     {
         Task<UserInfoDto> GetUserProfile(int userId);
         Task<UserDetailInfoDto> GetDetailedUserInfo(int userId);
-        Task UpdateUserProfile(int userId, User user);
+        Task UpdateUserProfile(int userId, UpdateUserDto user);
     }
 }

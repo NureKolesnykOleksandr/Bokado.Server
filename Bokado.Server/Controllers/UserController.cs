@@ -1,4 +1,5 @@
-﻿using Bokado.Server.Interfaces;
+﻿using Bokado.Server.Dtos;
+using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -84,7 +85,7 @@ namespace Bokado.Server.Controllers
             }
         }
         [HttpPut("{userId}")]
-        public async Task<IActionResult> UpdateProfile(int userId, [FromBody] User user)
+        public async Task<IActionResult> UpdateProfile(int userId, [FromForm] UpdateUserDto user)
         {
             try
             {

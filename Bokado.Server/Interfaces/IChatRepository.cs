@@ -1,4 +1,5 @@
-﻿using Bokado.Server.Models;
+﻿using Bokado.Server.Dtos;
+using Bokado.Server.Models;
 using Microsoft.AspNetCore.Identity;
 
 namespace Bokado.Server.Interfaces
@@ -7,7 +8,7 @@ namespace Bokado.Server.Interfaces
     {
         public Task<List<Chat>> GetChats(int userId);
         public Task<List<Message>> GetMessages(int chatId);
-        public Task<IdentityResult> SendMessage(int fromUserId, int chatId, string message);
+        public Task<IdentityResult> SendMessage(MessageDto messageDto);
 
     }
 }

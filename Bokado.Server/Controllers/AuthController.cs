@@ -44,12 +44,17 @@ namespace Bokado.Server.Controllers
             }
         }
 
-        [Authorize]
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] string email)
         {
-            await _authRepo.ResetPassword(email);
-            return Ok(new { message = "Reset link sent" });
+            var result = await _authRepo.ResetPassword(email);
+            if(result.Succeeded)
+            {
+
+                return Ok(new { message = "Reset link sent" });
+            }
+
+            return BadRequest(result);
         }
     }
 }
