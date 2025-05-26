@@ -1,9 +1,12 @@
 ﻿using Bokado.Server.Dtos;
 using Bokado.Server.Interfaces;
+using Bokado.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using System;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -21,17 +24,14 @@ namespace Bokado.Server.Controllers
             _friendsRepository = friendsRepository;
         }
 
-        private int GetCurrentUserId()
-        {
-            return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-        }
-
-        [HttpPost("swipe/{targetUserId}/{action}")]
+        [HttpPost("swipe/{targetUserId}")]
         public async Task<IActionResult> SwipeUser(int targetUserId, string action)
         {
+            var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+            int currentUserId = GetUserIdFromToken(token);
+
             try
             {
-                var currentUserId = GetCurrentUserId();
                 var result = await _friendsRepository.SwipeUser(currentUserId, targetUserId, action.ToLower());
 
                 if (!result.Succeeded)
@@ -52,7 +52,8 @@ namespace Bokado.Server.Controllers
         {
             try
             {
-                var currentUserId = GetCurrentUserId();
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
                 var result = await _friendsRepository.AcceptFriendRequest(currentUserId, swipeId);
 
                 if (!result.Succeeded)
@@ -73,7 +74,8 @@ namespace Bokado.Server.Controllers
         {
             try
             {
-                var currentUserId = GetCurrentUserId();
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
                 var users = await _friendsRepository.GetUsersWhoLikedMe(currentUserId);
                 return Ok(users);
             }
@@ -102,7 +104,8 @@ namespace Bokado.Server.Controllers
         {
             try
             {
-                var currentUserId = GetCurrentUserId();
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
                 var users = await _friendsRepository.SearchUsers(currentUserId);
                 return Ok(users);
             }
@@ -117,7 +120,8 @@ namespace Bokado.Server.Controllers
         {
             try
             {
-                var currentUserId = GetCurrentUserId();
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
                 var friends = await _friendsRepository.GetFriends(currentUserId);
                 return Ok(friends);
             }
@@ -132,7 +136,8 @@ namespace Bokado.Server.Controllers
         {
             try
             {
-                var currentUserId = GetCurrentUserId();
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
                 var result = await _friendsRepository.RemoveFriend(currentUserId, friendId);
 
                 if (!result.Succeeded)
@@ -145,6 +150,29 @@ namespace Bokado.Server.Controllers
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        private int GetUserIdFromToken(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            try
+            {
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+
+                var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    throw new SecurityTokenException("User ID not found in token or invalid format");
+                }
+
+
+                return userId;
+            }
+            catch (Exception ex)
+            {
+                throw new SecurityTokenException("Invalid token format", ex);
             }
         }
     }
