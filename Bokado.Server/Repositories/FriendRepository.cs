@@ -28,7 +28,6 @@ namespace Bokado.Server.Repositories
             if (swipe == null)
                 return IdentityResult.Failed(new IdentityError { Description = "Такого свайпу не існує" });
 
-            // Перевіряємо чи користувачі вже друзі
             bool areFriends = await _context.Friendships
                 .AnyAsync(f =>
                     (f.UserId == currentUserId && f.FriendId == swipe.SwiperId) ||
@@ -37,7 +36,6 @@ namespace Bokado.Server.Repositories
             if (areFriends)
                 return IdentityResult.Failed(new IdentityError { Description = "Ви вже друзі з цим користувачем" });
 
-            // Створюємо дружбу (зберігаємо лише один запис)
             var friendship = new Friendship
             {
                 UserId = Math.Min(currentUserId, swipe.SwiperId),
@@ -46,6 +44,7 @@ namespace Bokado.Server.Repositories
             };
 
             await _context.Friendships.AddAsync(friendship);
+            _context.Swipes.Remove(swipe);
             await _context.SaveChangesAsync();
 
             return IdentityResult.Success;
@@ -70,7 +69,26 @@ namespace Bokado.Server.Repositories
                     Username = s.Swiper.Username,
                     AvatarUrl = s.Swiper.AvatarUrl,
                     Bio = s.Swiper.Bio,
-                    SwipedAt = s.SwipedAt
+                    SwipedAt = s.SwipedAt,
+                    Action = s.Action
+                })
+                .ToListAsync();
+        }
+
+        public async Task<List<UserSwipeDto>> GetMySwipes(int currentUserId)
+        {
+            return await _context.Swipes
+                .Where(s =>
+                    s.SwiperId == currentUserId )
+                .Select(s => new UserSwipeDto
+                {
+                    SwipeId = s.SwipeId,
+                    UserId = s.TargetUserId,
+                    Username = s.TargetUser.Username,
+                    AvatarUrl = s.TargetUser.AvatarUrl,
+                    Bio = s.TargetUser.Bio,
+                    SwipedAt = s.SwipedAt,
+                    Action = s.Action
                 })
                 .ToListAsync();
         }
@@ -197,12 +215,6 @@ namespace Bokado.Server.Repositories
                 .OrderByDescending(u => u.Level)
                 .Take(10)
                 .ToListAsync();
-        }
-
-        public async Task<List<Swipe>> GetMySwipes(int currentUserId)
-        {
-            List<Swipe> swipes = await _context.Swipes.Where(s => s.SwiperId == currentUserId).ToListAsync();
-            return swipes;
         }
 
         public async Task<IdentityResult> RemoveSwipe(int currentUserId, int swipeId)

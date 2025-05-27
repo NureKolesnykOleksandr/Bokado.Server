@@ -10,10 +10,10 @@ namespace Bokado.Server.Interfaces
     {
         Task<IdentityResult> AcceptFriendRequest(int currentUserId, int swipeId);
         Task<List<UserSwipeDto>> GetUsersWhoLikedMe(int currentUserId);
+        Task<List<UserSwipeDto>> GetMySwipes(int currentUserId);
         Task<List<User>> GetTopUsers();
         Task<List<FriendDto>> SearchUsers(int currentUserId);
         Task<IdentityResult> SwipeUser(int swiperId, int targetUserId, string action);
-        Task<List<Swipe>> GetMySwipes(int currentUserId);
         Task<List<FriendDto>> GetFriends(int userId);
         Task<IdentityResult> RemoveFriend(int currentUserId, int friendId);
         Task<IdentityResult> RemoveSwipe(int currentUserId ,int swipeId);

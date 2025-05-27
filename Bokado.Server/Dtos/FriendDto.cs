@@ -16,5 +16,6 @@
         public string AvatarUrl { get; set; }
         public string Bio { get; set; }
         public DateTime SwipedAt { get; set; }
+        public string Action { get; set; }
     }
 }
