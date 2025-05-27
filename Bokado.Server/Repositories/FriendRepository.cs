@@ -65,6 +65,7 @@ namespace Bokado.Server.Repositories
                         (f.UserId == s.SwiperId && f.FriendId == currentUserId)))
                 .Select(s => new UserSwipeDto
                 {
+                    SwipeId = s.SwipeId,
                     UserId = s.SwiperId,
                     Username = s.Swiper.Username,
                     AvatarUrl = s.Swiper.AvatarUrl,
@@ -84,14 +85,25 @@ namespace Bokado.Server.Repositories
             .Distinct()
             .ToListAsync();
 
-            var users = await _context.Users.ToListAsync();
+            var swiperIds = await _context.Swipes
+                .Where(f => f.SwiperId == currentUserId || f.TargetUserId == currentUserId)
+                .Select(f => f.SwiperId == currentUserId ? f.TargetUserId : f.SwiperId)
+                .Distinct()
+                .ToListAsync();
+
+            var users = await _context.Users.Where(u=> 
+            u.UserId!=currentUserId 
+            && !u.IsBanned 
+            && !u.IsAdmin
+            && !friendIds.Contains(u.UserId)
+            && !swiperIds.Contains(u.UserId)).ToListAsync();
 
             List<FriendDto> userList = new List<FriendDto>();
 
-            for (int i = 0; i < SearchResultsLimit &&  i < users.Count-1; i++)
+            for (int i = 0; i < SearchResultsLimit &&  i < users.Count; i++)
             {
                 User user = users[random.Next(0, users.Count)];
-                if (!userList.Select(u=>u.UserId).Contains(user.UserId) && !friendIds.Contains(user.UserId))
+                if (!userList.Select(u=>u.UserId).Contains(user.UserId))
                 {
                     userList.Add(new FriendDto { AvatarUrl = user.AvatarUrl, Bio = user.Bio, UserId = user.UserId, Username = user.Username});
                 }
@@ -180,7 +192,39 @@ namespace Bokado.Server.Repositories
 
         public async Task<List<User>> GetTopUsers()
         {
-            return await _context.Users.ToListAsync();
+            return await _context.Users
+                .Where(u=>!u.IsAdmin)
+                .OrderByDescending(u => u.Level)
+                .Take(10)
+                .ToListAsync();
+        }
+
+        public async Task<List<Swipe>> GetMySwipes(int currentUserId)
+        {
+            List<Swipe> swipes = await _context.Swipes.Where(s => s.SwiperId == currentUserId).ToListAsync();
+            return swipes;
+        }
+
+        public async Task<IdentityResult> RemoveSwipe(int currentUserId, int swipeId)
+        {
+            User? user = await _context.Users.Where(u => u.UserId == currentUserId).FirstOrDefaultAsync();
+            if (user == null)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "Щось пішло не так" });
+            }
+            Swipe? swipe = await _context.Swipes.Where(s => s.SwipeId == swipeId).FirstOrDefaultAsync();
+            if(swipe== null)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "Цей свайп не було знайдено" });
+            }
+            if(swipe.TargetUserId != currentUserId && !user.IsAdmin && swipe.SwiperId!=currentUserId)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "У вас немає права видаляти цей свайп" });
+            }
+
+            _context.Swipes.Remove(swipe);
+            await _context.SaveChangesAsync();
+            return IdentityResult.Success;
         }
     }
 }

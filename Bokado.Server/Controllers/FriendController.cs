@@ -85,6 +85,23 @@ namespace Bokado.Server.Controllers
             }
         }
 
+
+        [HttpGet("swipe")]
+        public async Task<IActionResult> GetMySwipes()
+        {
+            try
+            {
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
+                var swipes = await _friendsRepository.GetMySwipes(currentUserId);
+                return Ok(swipes);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpGet("top-users")]
         public async Task<IActionResult> GetTopUsers()
         {
@@ -139,6 +156,28 @@ namespace Bokado.Server.Controllers
                 var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
                 int currentUserId = GetUserIdFromToken(token);
                 var result = await _friendsRepository.RemoveFriend(currentUserId, friendId);
+
+                if (!result.Succeeded)
+                {
+                    return BadRequest(result.Errors);
+                }
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpDelete("remove/swipe/{swipeId}")]
+        public async Task<IActionResult> RemoveSwipe(int swipeId)
+        {
+            try
+            {
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
+                var result = await _friendsRepository.RemoveSwipe(currentUserId, swipeId);
 
                 if (!result.Succeeded)
                 {

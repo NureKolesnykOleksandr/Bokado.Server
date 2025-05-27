@@ -13,7 +13,9 @@ namespace Bokado.Server.Interfaces
         Task<List<User>> GetTopUsers();
         Task<List<FriendDto>> SearchUsers(int currentUserId);
         Task<IdentityResult> SwipeUser(int swiperId, int targetUserId, string action);
+        Task<List<Swipe>> GetMySwipes(int currentUserId);
         Task<List<FriendDto>> GetFriends(int userId);
         Task<IdentityResult> RemoveFriend(int currentUserId, int friendId);
+        Task<IdentityResult> RemoveSwipe(int currentUserId ,int swipeId);
     }
 }
