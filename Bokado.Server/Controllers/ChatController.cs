@@ -3,6 +3,9 @@ using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace Bokado.Server.Controllers
 {
@@ -18,12 +21,14 @@ namespace Bokado.Server.Controllers
             _chatRepository = chatRepository;
         }
 
-        [HttpGet("user/{userId}")]
-        public async Task<ActionResult<List<Chat>>> GetUserChats(int userId)
+        [HttpGet("chats")]
+        public async Task<ActionResult<List<Chat>>> GetUserChats()
         {
             try
             {
-                var chats = await _chatRepository.GetChats(userId);
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
+                var chats = await _chatRepository.GetChats(currentUserId);
                 return Ok(chats);
             }
             catch (Exception ex)
@@ -47,12 +52,13 @@ namespace Bokado.Server.Controllers
         }
 
         [HttpPost("send")]
-        public async Task<IActionResult> SendMessage([FromBody] MessageDto message)
+        public async Task<IActionResult> SendMessage([FromForm] MessageDto message)
         {
-
             try
             {
-                var result = await _chatRepository.SendMessage(message);
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
+                var result = await _chatRepository.SendMessage(currentUserId,message);
 
                 if (result.Succeeded)
                 {
@@ -64,6 +70,29 @@ namespace Bokado.Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        private int GetUserIdFromToken(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            try
+            {
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+
+                var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    throw new SecurityTokenException("User ID not found in token or invalid format");
+                }
+
+
+                return userId;
+            }
+            catch (Exception ex)
+            {
+                throw new SecurityTokenException("Invalid token format", ex);
             }
         }
     }

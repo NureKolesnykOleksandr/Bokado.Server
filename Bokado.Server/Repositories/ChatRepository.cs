@@ -2,7 +2,9 @@
 using Bokado.Server.Dtos;
 using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
+using Bokado.Server.Services;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bokado.Server.Repositories
@@ -10,10 +12,13 @@ namespace Bokado.Server.Repositories
     public class ChatRepository : IChatRepository
     {
         private readonly SocialNetworkContext _context;
+        private readonly FileService _fileService;
 
-        public ChatRepository(SocialNetworkContext context)
+
+        public ChatRepository(SocialNetworkContext context, FileService fileService)
         {
             _context = context;
+            _fileService = fileService;
         }
 
         public async Task<List<Chat>> GetChats(int userId)
@@ -29,11 +34,11 @@ namespace Bokado.Server.Repositories
             return messages;
         }
 
-        public async Task<IdentityResult> SendMessage(MessageDto messageDto)
+        public async Task<IdentityResult> SendMessage(int fromId,MessageDto messageDto)
         {
             var sender = await _context.Users
                 .Include(u => u.ChatParticipants)
-                .FirstOrDefaultAsync(u => u.UserId == messageDto.FromId);
+                .FirstOrDefaultAsync(u => u.UserId == fromId);
 
             if (sender == null)
                 return IdentityResult.Failed(new IdentityError { Description = "Sender not found" });
@@ -44,19 +49,34 @@ namespace Bokado.Server.Repositories
 
             var chat = await GetOrCreateChatAsync(sender, receiver);
 
-            string attachmentPath = null;
+
+
+            string attachmentPath = "";
             if (messageDto.attachedFile != null)
             {
-                attachmentPath = await SaveAttachmentAsync(messageDto.attachedFile, sender.Username);
+                string webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Messages");
+                var allowedExtensions = new[] { ".mp3", ".gif", ".png" , ".jpg"};
+                var attachmentFileName = await _fileService.SaveFileAsync(
+                    messageDto.attachedFile,
+                    webRootPath,
+                    allowedExtensions,
+                    Path.GetFileNameWithoutExtension(messageDto.attachedFile.FileName));
+
+                if (attachmentFileName == "")
+                {
+                    throw new ArgumentException("File wasn`t saved");
+                }
+
+                attachmentPath = $"/Messages/{attachmentFileName}";
             }
 
             var message = new Message
             {
                 ChatId = chat.ChatId,
                 SenderId = sender.UserId,
-                Text = messageDto.Message,
-                Attachment = attachmentPath,
-                SentAt = DateTime.UtcNow
+                Text = messageDto.Text,
+                SentAt = DateTime.UtcNow,
+                Attachment = attachmentPath
             };
 
             _context.Messages.Add(message);

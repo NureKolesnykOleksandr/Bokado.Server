@@ -4,6 +4,7 @@ using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace Bokado.Server.Repositories
 {
@@ -144,6 +145,11 @@ namespace Bokado.Server.Repositories
 
         public async Task<Event> CreateEvent(EventDto eventDto, int creatorId)
         {
+            if(eventDto.Maximum < 2)
+            {
+                throw new ValidationException("You can`t create event with less then 2 participants");
+            }
+
             var newEvent = new Event()
             {
                 City = eventDto.City,
@@ -151,7 +157,8 @@ namespace Bokado.Server.Repositories
                 CreatorId = creatorId,
                 Date = eventDto.Date.ToUniversalTime(),
                 Description = eventDto.Description,
-                Title = eventDto.Title
+                Title = eventDto.Title,
+                Maximum = eventDto.Maximum
             };
 
             await _context.Events.AddAsync(newEvent);
@@ -171,10 +178,26 @@ namespace Bokado.Server.Repositories
             return newEvent;
         }
 
-        public async Task<List<Challenge>> GetChallenges()
+        public async Task<List<ChallengeDto>> GetChallenges(int userId)
         {
-            var challenges = await _context.Challenges.Where(c=>c.IsActive).ToListAsync();
-            return challenges;
+            var query = from challenge in _context.Challenges
+                        where challenge.IsActive
+                        join userChallenge in _context.UserChallenges
+                            on new { ChallengeId = challenge.ChallengeId, UserId = userId }
+                            equals new { userChallenge.ChallengeId, userChallenge.UserId }
+                            into userChallengesGroup
+                        from uc in userChallengesGroup.DefaultIfEmpty()
+                        select new ChallengeDto
+                        {
+                            ChallengeId = challenge.ChallengeId,
+                            Title = challenge.Title,
+                            Description = challenge.Description,
+                            Reward = challenge.Reward,
+                            CreatedAt = challenge.CreatedAt,
+                            CompletedAt = uc != null ? uc.CompletedAt : null
+                        };
+
+            return await query.ToListAsync();
         }
 
         public async Task<List<Event>> GetEvents()
@@ -186,6 +209,21 @@ namespace Bokado.Server.Repositories
         public async Task<IdentityResult> JoinEvent(int eventId, int userId)
         {
             var newParticipant = _context.EventParticipants.Add(new EventParticipant() { EventId = eventId, UserId = userId, JoinedAt = DateTime.UtcNow });
+            await _context.SaveChangesAsync();
+
+            return IdentityResult.Success;
+        }
+
+        public async Task<IdentityResult> QuitEvent(int eventId, int userId)
+        {
+            var user = await _context.EventParticipants.Where(ep => ep.UserId == userId && ep.EventId == eventId).FirstOrDefaultAsync();
+            
+            if(user == null)
+            {
+                return IdentityResult.Failed(new IdentityError() { Description = "Вашої участі у цьому івенту не було знайдено" });
+            }
+
+            _context.EventParticipants.Remove(user);
             await _context.SaveChangesAsync();
 
             return IdentityResult.Success;

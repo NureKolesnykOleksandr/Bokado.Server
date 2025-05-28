@@ -84,12 +84,18 @@ namespace Bokado.Server.Controllers
                 throw new SecurityTokenException("Invalid token format", ex);
             }
         }
+
         [HttpPut("{userId}")]
         public async Task<IActionResult> UpdateProfile(int userId, [FromForm] UpdateUserDto user)
         {
             try
             {
-                var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                var tuple = GetUserIdAndRoleFromToken(token);
+                if (userId != tuple.userId && tuple.role != "admin")
+                {
+                    return Unauthorized("У вас немає права редагувати цього користувача");
+                }
                 await _userRepository.UpdateUserProfile(userId, user);
                 return Ok();
             }

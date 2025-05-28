@@ -22,6 +22,8 @@ namespace Bokado.Server.Models
 
         public string City { get; set; }
 
+        public int Maximum { get; set; }
+
         [Required]
         public int CreatorId { get; set; }
 

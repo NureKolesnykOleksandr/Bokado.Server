@@ -8,7 +8,7 @@ namespace Bokado.Server.Interfaces
     {
         public Task<List<Chat>> GetChats(int userId);
         public Task<List<Message>> GetMessages(int chatId);
-        public Task<IdentityResult> SendMessage(MessageDto messageDto);
+        public Task<IdentityResult> SendMessage( int fromId, MessageDto messageDto);
 
     }
 }

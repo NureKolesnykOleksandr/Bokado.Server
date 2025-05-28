@@ -13,6 +13,8 @@ namespace Bokado.Server.Dtos
         public DateTime Date { get; set; }
 
         public string City { get; set; }
+        public int Maximum { get; set; }
+
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

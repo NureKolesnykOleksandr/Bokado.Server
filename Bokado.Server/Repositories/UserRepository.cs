@@ -5,16 +5,19 @@ using Bokado.Server.Models;
 using Microsoft.EntityFrameworkCore;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 using System.Threading;
+using Bokado.Server.Services;
 
 namespace Bokado.Server.Repositories
 {
     public class UserRepository : IUserRepository
     {
         private readonly SocialNetworkContext _context;
+        private readonly FileService _fileService;
 
-        public UserRepository(SocialNetworkContext context)
+        public UserRepository(SocialNetworkContext context, FileService fileService)
         {
             _context = context;
+            _fileService = fileService;
         }
 
         public async Task<UserInfoDto> GetUserProfile(int userId)
@@ -94,31 +97,21 @@ namespace Bokado.Server.Repositories
             if (user.UserIcon != null)
             {
                 string webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Icons");
-                Directory.CreateDirectory(webRootPath);
-
-                // Получаем расширение файла
-                var fileExtension = Path.GetExtension(user.UserIcon.FileName).ToLower();
-
-                // Генерируем имя файла с сохранением расширения
-                var imageFileName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(user.Username)}{fileExtension}";
-                var imageDestinationPath = Path.Combine(webRootPath, imageFileName);
-
-                // Проверяем допустимые расширения (опционально)
                 var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
-                if (!allowedExtensions.Contains(fileExtension))
-                {
-                    throw new ArgumentException("Invalid file format. Allowed formats: " + string.Join(", ", allowedExtensions));
-                }
+                var imageFileName = await _fileService.SaveFileAsync(
+                    user.UserIcon,
+                    webRootPath,
+                    allowedExtensions,
+                    Path.GetFileNameWithoutExtension(user.Username));
 
-                using (var stream = new FileStream(imageDestinationPath, FileMode.Create))
+                if(imageFileName == null) 
                 {
-                    await user.UserIcon.CopyToAsync(stream);
+                    throw new ArgumentException("File wasn`t saved");
                 }
 
                 localUser.AvatarUrl = $"/Icons/{imageFileName}";
             }
 
-            // Обновляем основные данные пользователя
             localUser.Username = user.Username;
             localUser.BirthDate = user.BirthDate;
             localUser.Bio = user.Bio;
@@ -130,7 +123,6 @@ namespace Bokado.Server.Repositories
                 localUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.Password);
             }
 
-            // Обновляем интересы пользователя
             if (user.UserInterestsIds != null && user.UserInterestsIds.Any())
             {
                 var allInterests = await _context.Interests

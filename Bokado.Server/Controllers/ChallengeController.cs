@@ -1,15 +1,17 @@
 ﻿using Bokado.Server.Dtos;
 using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
+using Bokado.Server.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Threading.Tasks;
 
 namespace Bokado.Server.Controllers
 {
-    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ChallengeController : ControllerBase
@@ -21,17 +23,23 @@ namespace Bokado.Server.Controllers
             _challengeRepository = challengeRepository;
         }
 
+        [Authorize]
         [HttpGet("challenges")]
         public async Task<ActionResult<List<Challenge>>> GetChallenges()
         {
-            var challenges = await _challengeRepository.GetChallenges();
+            var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+            int currentUserId = GetUserIdFromToken(token);
+            var challenges = await _challengeRepository.GetChallenges(currentUserId);
             return Ok(challenges);
         }
 
-        [HttpPost("check/{challengeId}/{userId}")]
-        public async Task<IActionResult> CheckChallenge(int challengeId, int userId)
+        [Authorize]
+        [HttpPost("check/{challengeId}")]
+        public async Task<IActionResult> CheckChallenge(int challengeId)
         {
-            var result = await _challengeRepository.CheckChallenge(challengeId, userId);
+            var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+            int currentUserId = GetUserIdFromToken(token);
+            var result = await _challengeRepository.CheckChallenge(challengeId, currentUserId);
             return result.Succeeded
                 ? Ok(new { Message = "Challenge completed successfully" })
                 : BadRequest(result.Errors);
@@ -44,20 +52,71 @@ namespace Bokado.Server.Controllers
             return Ok(events);
         }
 
+        [Authorize]
         [HttpPost("events")]
-        public async Task<ActionResult<Event>> CreateEvent([FromBody] EventDto eventDto, int creatorId)
+        public async Task<ActionResult<Event>> CreateEvent([FromBody] EventDto eventDto)
         {
-            var newEvent = await _challengeRepository.CreateEvent(eventDto, creatorId);
+            var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+            int currentUserId = GetUserIdFromToken(token);
+            var newEvent = await _challengeRepository.CreateEvent(eventDto, currentUserId);
             return CreatedAtAction(nameof(GetEvents), newEvent);
         }
 
-        [HttpPost("events/join/{eventId}/{userId}")]
-        public async Task<IActionResult> JoinEvent(int eventId, int userId)
+        [Authorize]
+        [HttpPost("events/join/{eventId}")]
+        public async Task<IActionResult> JoinEvent(int eventId)
         {
-            var result = await _challengeRepository.JoinEvent(eventId, userId);
+            var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+            int currentUserId = GetUserIdFromToken(token);
+            var result = await _challengeRepository.JoinEvent(eventId, currentUserId);
             return result.Succeeded
                 ? Ok(new { Message = "Successfully joined the event" })
                 : BadRequest(result.Errors);
+        }
+
+        [Authorize]
+        [HttpDelete("quit/{eventId}")]
+        public async Task<IActionResult> QuitEvent(int eventId)
+        {
+            try
+            {
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
+                var result = await _challengeRepository.QuitEvent(eventId, currentUserId);
+
+                if (!result.Succeeded)
+                {
+                    return BadRequest(result.Errors);
+                }
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        private int GetUserIdFromToken(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            try
+            {
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+
+                var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    throw new SecurityTokenException("User ID not found in token or invalid format");
+                }
+
+
+                return userId;
+            }
+            catch (Exception ex)
+            {
+                throw new SecurityTokenException("Invalid token format", ex);
+            }
         }
     }
 }
