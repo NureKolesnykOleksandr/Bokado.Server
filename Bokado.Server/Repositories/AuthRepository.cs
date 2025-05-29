@@ -88,17 +88,20 @@ namespace Bokado.Server.Repositories
 
             string password = GenerateRandomPassword();
 
-            string text = $"Hi dear {user.Username}" +
-                $"Your password was reset to {password}" +
-                $"Have a nice day." +
-                $"I love u my kitty)";
+            string text = $"Hi dear {user.Username}. " +
+                $"Your password was reset to {password}. " +
+                $"Have a nice day.";
             try
             {
-                _emailService.SendEmail(email, "Password Reset", text);
+                bool emailSended = await _emailService.SendEmailAsync(email, "Password Reset", text, user.Username);
+                if (!emailSended)
+                {
+                    return IdentityResult.Failed(new IdentityError { Description = "Не вдалося відправити повідомлення" });
+                }
             }
             catch
             {
-                return IdentityResult.Failed(new IdentityError { Description = "" });
+                return IdentityResult.Failed(new IdentityError { Description = "Щось пішло не так" });
             }
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);

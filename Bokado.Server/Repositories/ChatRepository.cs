@@ -36,7 +36,7 @@ namespace Bokado.Server.Repositories
 
         public async Task<IdentityResult> SendMessage(int fromId,MessageDto messageDto)
         {
-            var sender = await _context.Users
+             var sender = await _context.Users
                 .Include(u => u.ChatParticipants)
                 .FirstOrDefaultAsync(u => u.UserId == fromId);
 

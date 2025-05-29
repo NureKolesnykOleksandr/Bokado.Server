@@ -14,37 +14,66 @@ namespace Bokado.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ChallengeController : ControllerBase
+    public class EventController : ControllerBase
     {
-        private readonly IChallengeRepository _challengeRepository;
+        private readonly IEventRepository _challengeRepository;
 
-        public ChallengeController(IChallengeRepository challengeRepository)
+        public EventController(IEventRepository challengeRepository)
         {
             _challengeRepository = challengeRepository;
         }
 
-        [Authorize]
-        [HttpGet("challenges")]
-        public async Task<ActionResult<List<Challenge>>> GetChallenges()
+        [HttpGet("events")]
+        public async Task<ActionResult<List<Event>>> GetEvents()
         {
-            var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-            int currentUserId = GetUserIdFromToken(token);
-            var challenges = await _challengeRepository.GetChallenges(currentUserId);
-            return Ok(challenges);
+            var events = await _challengeRepository.GetEvents();
+            return Ok(events);
         }
 
         [Authorize]
-        [HttpPost("check/{challengeId}")]
-        public async Task<IActionResult> CheckChallenge(int challengeId)
+        [HttpPost("events")]
+        public async Task<ActionResult<Event>> CreateEvent([FromBody] EventDto eventDto)
         {
             var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
             int currentUserId = GetUserIdFromToken(token);
-            var result = await _challengeRepository.CheckChallenge(challengeId, currentUserId);
+            var newEvent = await _challengeRepository.CreateEvent(eventDto, currentUserId);
+            return CreatedAtAction(nameof(GetEvents), newEvent);
+        }
+
+        [Authorize]
+        [HttpPost("events/join/{eventId}")]
+        public async Task<IActionResult> JoinEvent(int eventId)
+        {
+            var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+            int currentUserId = GetUserIdFromToken(token);
+            var result = await _challengeRepository.JoinEvent(eventId, currentUserId);
             return result.Succeeded
-                ? Ok(new { Message = "Challenge completed successfully" })
+                ? Ok(new { Message = "Successfully joined the event" })
                 : BadRequest(result.Errors);
         }
 
+        [Authorize]
+        [HttpDelete("quit/{eventId}")]
+        public async Task<IActionResult> QuitEvent(int eventId)
+        {
+            try
+            {
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
+                var result = await _challengeRepository.QuitEvent(eventId, currentUserId);
+
+                if (!result.Succeeded)
+                {
+                    return BadRequest(result.Errors);
+                }
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
         private int GetUserIdFromToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();

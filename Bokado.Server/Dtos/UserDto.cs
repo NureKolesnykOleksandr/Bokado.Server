@@ -51,7 +51,7 @@ namespace Bokado.Server.Dtos
         public string? Status { get; set; }
         public string? Password { get; set; }
         public string? City { get; set; }
-        public ICollection<int>? UserInterestsIds { get; set; }
+        public ICollection<string>? UserInterests { get; set; }
     }
 
     public class UserDetailInfoDto
@@ -71,7 +71,7 @@ namespace Bokado.Server.Dtos
         public bool IsAdmin { get; set; } = false;
         public DateTime CreatedAt { get; set; }
         public DateTime LastActive { get; set; }
-        public ICollection<UserInterest> UserInterests { get; set; }
+        public ICollection<Interest> UserInterests { get; set; }
         public ICollection<Friendship> Friends { get; set; }
         public ICollection<Swipe> Swipes { get; set; }
         public ICollection<ChatParticipant> ChatParticipants { get; set; }

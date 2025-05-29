@@ -1,65 +1,45 @@
-﻿using MailKit.Net.Smtp;
-using MailKit.Security;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using MimeKit;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Net;
+using System.Net.Mail;
+using System.Reflection;
+
 
 namespace Bokado.Server.Services
 {
-    public class EmailConfiguration
-    {
-        public string From { get; set; }
-        public string SmtpServer { get; set; }
-        public int Port { get; set; }
-        public string UserName { get; set; }
-        public string Password { get; set; }
-    }
-
     public class EmailService
     {
-        private readonly EmailConfiguration _emailConfig;
-
-        public EmailService()
+        public async Task<bool> SendEmailAsync(string recipientEmail, string subject, string body, string to)
         {
-            _emailConfig = new EmailConfiguration()
+            try
             {
-                From = "devlibnure@gmail.com",
-                SmtpServer = "smtp.gmail.com",
-                Port = 465,
-                UserName = "devlibnure@gmail.com",
-                Password = "wryz rtor whli rimv"
-            };
-        }
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress("Bokado Support", "oleksandr.kolesnyk@nure.ua"));
+                message.To.Add(new MailboxAddress(to, recipientEmail));
+                message.Subject = subject;
 
-        public async Task SendEmail(string to, string subject, string content)
-        {
-            // Создаем email сообщение
-            var emailMessage = new MimeMessage();
-            emailMessage.From.Add(new MailboxAddress("Bokado", _emailConfig.From));
-            emailMessage.To.Add(new MailboxAddress("", to));
-            emailMessage.Subject = subject;
-            emailMessage.Body = new TextPart(MimeKit.Text.TextFormat.Text) { Text = content };
+                message.Body = new TextPart("plain")
+                {
+                    Text = body
+                };
 
-            using (var client = new SmtpClient())
-            {
-                try
+                using (var client = new MailKit.Net.Smtp.SmtpClient())
                 {
-                    await client.ConnectAsync(_emailConfig.SmtpServer, _emailConfig.Port, SecureSocketOptions.Auto);
-                    client.AuthenticationMechanisms.Remove("XOAUTH2");
-                    await client.AuthenticateAsync(_emailConfig.UserName, _emailConfig.Password);
-                    await client.SendAsync(emailMessage);
-                }
-                catch (Exception ex)
-                {
-                    throw ex; 
-                }
-                finally
-                {
+                    await client.ConnectAsync("smtp.gmail.com", 587, MailKit.Security.SecureSocketOptions.StartTls);
+
+                    await client.AuthenticateAsync("oleksandr.kolesnyk@nure.ua", "zvpg beuo lmdj bxxm");
+
+                    await client.SendAsync(message);
                     await client.DisconnectAsync(true);
                 }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Email sending error: {ex.Message}");
+                return false;
             }
         }
     }

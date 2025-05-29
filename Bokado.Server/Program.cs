@@ -20,6 +20,8 @@ builder.Services.AddScoped<EmailService, EmailService>();
 builder.Services.AddScoped<FileService, FileService>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<IEventRepository, EventRepository>();
+builder.Services.AddScoped<IInterestRepository, InterestRepository>();
 builder.Services.AddScoped<IChallengeRepository, ChallengeRepository>();
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddScoped<IFriendsRepository, FriendsRepository>();

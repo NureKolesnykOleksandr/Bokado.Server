@@ -5,6 +5,7 @@ using Bokado.Server.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Asn1.Cmp;
+using System.Collections.Generic;
 
 namespace Bokado.Server.Repositories
 {
@@ -95,31 +96,21 @@ namespace Bokado.Server.Repositories
                 .Include(u => u.CreatedEvents)
                 .ToListAsync();
 
+            // Получаем все ID интересов для всех пользователей
+            var allInterestIds = users.SelectMany(u => u.UserInterests.Select(ui => ui.InterestId)).Distinct();
+
+            // Загружаем все нужные интересы одним запросом
+            var allInterests = await _context.Interests
+                .Where(i => allInterestIds.Contains(i.InterestId))
+                .ToListAsync();
+
             return users.Select(user => new UserDetailInfoDto()
             {
-                Email = user.Email,
-                AvatarUrl = user.AvatarUrl,
-                Status = user.Status,
-                Bio = user.Bio,
-                BirthDate = user.BirthDate,
-                City = user.City,
-                CreatedAt = user.CreatedAt,
-                IsAdmin = user.IsAdmin,
-                IsBanned = user.IsBanned,
-                IsPremium = user.IsPremium,
-                LastActive = user.LastActive,
-                Level = user.Level,
-                UserId = user.UserId,
-                Username = user.Username,
-                Swipes = user.Swipes,
-                ChatParticipants = user.ChatParticipants,
-                CreatedEvents = user.CreatedEvents,
-                EventParticipants = user.EventParticipants,
-                Friends = user.Friends,
-                Messages = user.Messages,
-                UserChallenges = user.UserChallenges,
-                UserInterests = user.UserInterests
-            });
+                // ... другие свойства ...
+                UserInterests = allInterests
+                    .Where(i => user.UserInterests.Any(ui => ui.InterestId == i.InterestId))
+                    .ToList()
+            }).ToList();
         } 
     }
 }
