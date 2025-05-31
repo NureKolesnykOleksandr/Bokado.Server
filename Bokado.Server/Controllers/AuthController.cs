@@ -3,6 +3,11 @@ using Bokado.Server.Interfaces;
 using Bokado.Server.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
+using Bokado.Server.Models;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Bokado.Server.Controllers
 {
@@ -10,11 +15,11 @@ namespace Bokado.Server.Controllers
     [Route("api/auth")]
     public class AuthController : ControllerBase
     {
-        private readonly IAuthRepository _authRepo;
+        private readonly IAuthRepository _authRepository;
 
         public AuthController(IAuthRepository authRepo)
         {
-            _authRepo = authRepo;
+            _authRepository = authRepo;
         }
 
         [HttpPost("register")]
@@ -22,7 +27,7 @@ namespace Bokado.Server.Controllers
         {
             try
             {
-                var result = await _authRepo.Register(dto);
+                var result = await _authRepository.Register(dto);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -36,7 +41,7 @@ namespace Bokado.Server.Controllers
         {
             try
             {
-                var result = await _authRepo.Login(dto);
+                var result = await _authRepository.Login(dto);
                 return Ok(result);
             }
             catch (UnauthorizedAccessException ex)
@@ -45,21 +50,36 @@ namespace Bokado.Server.Controllers
             }
         }
 
-        [HttpPost("login-with-google")]
-        public async Task<IActionResult> LoginWithGoogle(int userId, string Token)
+        [HttpGet("google")]
+        public IActionResult GoogleLogin()
         {
+            var properties = new AuthenticationProperties
+            {
+                RedirectUri = Url.Action("GoogleCallback")
+            };
+            return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+        }
 
+        [HttpGet("google-callback")]
+        public async Task<IActionResult> GoogleCallback()
+        {
+            var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
 
-            return BadRequest();
+            var googleId = result.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
+            var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
+
+            var resultDto = await _authRepository.LoginGoogle(new GoogleLoginDTO { Email = email, GoogleId = googleId, Name = name});
+
+            return Redirect($"http://localhost:5173/dashboard?token={resultDto.Token}");
         }
 
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] string email)
         {
-            var result = await _authRepo.ResetPassword(email);
+            var result = await _authRepository.ResetPassword(email);
             if(result.Succeeded)
             {
-
                 return Ok(new { message = "Reset link sent" });
             }
 

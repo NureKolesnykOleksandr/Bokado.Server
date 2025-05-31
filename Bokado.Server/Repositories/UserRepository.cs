@@ -55,8 +55,13 @@ namespace Bokado.Server.Repositories
                 .Include(u => u.CreatedEvents)
                 .FirstOrDefaultAsync();
 
+            var userInterestIds = await _context.UserInterests
+                .Where(ui => ui.UserId == userId)
+                .Select(ui => ui.InterestId)
+                .ToListAsync();
+
             List<Interest> interests = await _context.Interests
-                .Where(i => user.UserInterests.Any(ui => ui.InterestId == i.InterestId))
+                .Where(i => userInterestIds.Contains(i.InterestId))
                 .ToListAsync();
 
             return new UserDetailInfoDto()

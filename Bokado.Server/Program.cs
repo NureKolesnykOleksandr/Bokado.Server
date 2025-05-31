@@ -52,6 +52,12 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };
+})
+.AddGoogle(options =>
+{
+    options.ClientId = builder.Configuration["Google:Client_Id"];
+    options.ClientSecret = builder.Configuration["Google:Client_Secret"];
+    options.CallbackPath = "/api/auth/google-callback";
 });
 
 builder.Services.AddAuthorization(options =>

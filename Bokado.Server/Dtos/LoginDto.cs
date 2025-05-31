@@ -6,6 +6,13 @@
         public string Password { get; set; }
     }
 
+    public class GoogleLoginDTO
+    {
+        public string GoogleId { get; set; }
+        public string Email { get; set; }
+        public string Name { get; set; }
+    }
+
     public class RegisterDTO : LoginDTO
     {
         public string Username { get; set; }

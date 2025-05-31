@@ -18,9 +18,7 @@ namespace Bokado.Server.Models
         [Required]
         [EmailAddress]
         public string Email { get; set; }
-
-        [Required]
-        public string PasswordHash { get; set; }
+        public string? PasswordHash { get; set; }
         public DateTime BirthDate { get; set; }
         public string? AvatarUrl { get; set; }
         public string? Bio { get; set; }
@@ -32,6 +30,9 @@ namespace Bokado.Server.Models
         public bool IsAdmin { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime LastActive { get; set; } = DateTime.UtcNow;
+
+        public string? GoogleId { get; set; }
+        public bool IsEmailVerified { get; set; } = false;
 
         [JsonIgnore]
         public ICollection<UserInterest>? UserInterests { get; set; }
