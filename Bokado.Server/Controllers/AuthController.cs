@@ -2,6 +2,7 @@
 using Bokado.Server.Interfaces;
 using Bokado.Server.Dtos;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace Bokado.Server.Controllers
 {
@@ -42,6 +43,14 @@ namespace Bokado.Server.Controllers
             {
                 return Unauthorized(ex.Message);
             }
+        }
+
+        [HttpPost("login-with-google")]
+        public async Task<IActionResult> LoginWithGoogle(int userId, string Token)
+        {
+
+
+            return BadRequest();
         }
 
         [HttpPost("reset-password")]

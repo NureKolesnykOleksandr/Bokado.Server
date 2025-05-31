@@ -93,9 +93,78 @@ namespace Bokado.Server.Repositories
                 .ToListAsync();
         }
 
+        private Dictionary<int, double> CalculateUserPriorities(User currentUser, List<User> users)
+        {
+            var priorities = new Dictionary<int, double>();
+
+            var currentUserInterestIds = currentUser.UserInterests?
+                .Select(ui => ui.InterestId)
+                .ToHashSet() ?? new HashSet<int>();
+
+            foreach (var user in users)
+            {
+                if (user.UserId == currentUser.UserId)
+                    continue;
+
+                double priorityScore = 0;
+
+                // 1. Спільне місто (вага 30%)
+                if (user.City == currentUser.City)
+                {
+                    priorityScore += 0.3;
+                }
+
+                // 2. Спільні інтереси (вага 40%)
+                if (user.UserInterests != null && currentUserInterestIds.Any())
+                {
+                    int commonInterests = user.UserInterests
+                        .Count(ui => currentUserInterestIds.Contains(ui.InterestId));
+
+                    int maxPossibleCommon = Math.Min(
+                        user.UserInterests.Count,
+                        currentUserInterestIds.Count);
+
+                    if (maxPossibleCommon > 0)
+                    {
+                        double interestMatchRatio = (double)commonInterests / maxPossibleCommon;
+                        priorityScore += 0.4 * interestMatchRatio;
+                    }
+                }
+
+                // 3. Активність користувача (вага 20%)
+                // Чим новіша активність, тим вищий пріоритет
+                double activityScore = 1 - (DateTime.UtcNow - user.LastActive).TotalDays / 30;
+                activityScore = Math.Max(0, Math.Min(1, activityScore)); // Обмежуємо 0-1
+                priorityScore += 0.2 * activityScore;
+
+                // 4. Premium-статус (вага 20%)
+                if (user.IsPremium)
+                {
+                    priorityScore += 0.2;
+                }
+
+                // 5. Різниця у віці +10% якщо різниця менше 10 років, ще +10% якщо менше 2
+                if (Math.Abs((user.BirthDate - currentUser.BirthDate).TotalDays) < 3560)
+                {
+                    priorityScore += 0.1;
+
+                    if (Math.Abs((user.BirthDate - currentUser.BirthDate).TotalDays) < 712)
+                    {
+                        priorityScore += 0.1;
+                    }
+                }
+
+                priorities[user.UserId] = priorityScore;
+            }
+
+            return priorities;
+        }
+
         public async Task<List<FriendDto>> SearchUsers(int currentUserId)
         {
             var random = new Random();
+
+            User currentUser = await _context.Users.Where(u => u.UserId == currentUserId).Include(u=>u.UserInterests).FirstOrDefaultAsync();
 
             var friendIds = await _context.Friendships
             .Where(f => f.UserId == currentUserId || f.FriendId == currentUserId)
@@ -111,19 +180,47 @@ namespace Bokado.Server.Repositories
 
             var users = await _context.Users.Where(u=> 
             u.UserId!=currentUserId 
+            && DateTime.UtcNow-u.LastActive < TimeSpan.FromDays(30)
             && !u.IsBanned 
             && !u.IsAdmin
             && !friendIds.Contains(u.UserId)
-            && !swiperIds.Contains(u.UserId)).ToListAsync();
+            && !swiperIds.Contains(u.UserId)).Include(u => u.UserInterests).ToListAsync();
 
             List<FriendDto> userList = new List<FriendDto>();
+            Dictionary<int, double> Priorities = CalculateUserPriorities(currentUser, users);
+
+
+            var weightedUsers = users
+                .Select(u => new
+                {
+                    User = u,
+                    Weight = Priorities.GetValueOrDefault(u.UserId, 0.01)
+                })
+                .ToList();
 
             for (int i = 0; i < SearchResultsLimit &&  i < users.Count; i++)
             {
-                User user = users[random.Next(0, users.Count)];
-                if (!userList.Select(u=>u.UserId).Contains(user.UserId))
+                double totalWeight = weightedUsers.Sum(w => w.Weight);
+
+                double randomValue = random.NextDouble() * totalWeight;
+
+                double cumulative = 0;
+                foreach (var wu in weightedUsers)
                 {
-                    userList.Add(new FriendDto { AvatarUrl = user.AvatarUrl, Bio = user.Bio, UserId = user.UserId, Username = user.Username});
+                    cumulative += wu.Weight;
+                    if (cumulative >= randomValue)
+                    {
+                        userList.Add(new FriendDto
+                        {
+                            AvatarUrl = wu.User.AvatarUrl,
+                            Bio = wu.User.Bio,
+                            UserId = wu.User.UserId,
+                            Username = wu.User.Username
+                        });
+
+                        weightedUsers.Remove(wu);
+                        break;
+                    }
                 }
             }
             return userList;

@@ -14,10 +14,14 @@ namespace Bokado.Server.Controllers
     public class AdminController : ControllerBase
     {
         private readonly IAdminRepository _adminRepository;
+        private readonly IStatisticRepository _statisticRepository;
+        private readonly ISubscribeRepository _subscribeRepository;
 
-        public AdminController(IAdminRepository adminRepository)
+        public AdminController(IAdminRepository adminRepository, IStatisticRepository statisticRepository, ISubscribeRepository subscribeRepository)
         {
             _adminRepository = adminRepository;
+            _statisticRepository = statisticRepository;
+            _subscribeRepository = subscribeRepository;
         }
 
         [HttpPost("ban/{userId}")]
@@ -47,16 +51,18 @@ namespace Bokado.Server.Controllers
                 : BadRequest(result.Errors);
         }
 
-        [HttpGet("stats")]
-        public async Task<IActionResult> GetPlatformStats()
+        [HttpGet("stats/Users")]
+        public async Task<IActionResult> GetUsersPerMonth()
         {
-            return Ok(new
-            {
-                TotalUsers = 0,
-                ActiveUsers = 0,
-                BannedUsers = 0,
-                TotalChallenges = 0
-            });
+            var usersPerMonth = await _statisticRepository.GetUsersPerMonth();
+            return Ok(usersPerMonth);
+        }
+
+        [HttpGet("stats/Challenges")]
+        public async Task<IActionResult> GetChallengesCompleted()
+        {
+            var completedChallenges = await _statisticRepository.GetChallengesCompleted();
+            return Ok(completedChallenges);
         }
 
         [HttpGet("allChallenges")]
@@ -71,6 +77,24 @@ namespace Bokado.Server.Controllers
         {
             var users = await _adminRepository.GetaAllUsers();
             return Ok(users);
+        }
+
+        [HttpPut("/subscribe")]
+        public async Task<IActionResult> GiveSubscribe(int userId)
+        {
+            var result = await _subscribeRepository.GiveSubscribe(userId);
+            return result.Succeeded
+                ? Ok(new { Message = "User received subscribe" })
+                : BadRequest(result.Errors);
+        }
+
+        [HttpDelete("/subscribe")]
+        public async Task<IActionResult> TakeSubscribe(int userId)
+        {
+            var result = await _subscribeRepository.TakeSubscribe(userId);
+            return result.Succeeded
+                ? Ok(new { Message = "User lost subscribe" })
+                : BadRequest(result.Errors);
         }
     }
 }

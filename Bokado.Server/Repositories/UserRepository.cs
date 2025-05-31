@@ -90,7 +90,7 @@ namespace Bokado.Server.Repositories
         {
             var localUser = await _context.Users
                 .Include(u => u.UserInterests)
-                .ThenInclude(ui => ui.Interest) // Добавляем загрузку связанных интересов
+                .ThenInclude(ui => ui.Interest)
                 .FirstOrDefaultAsync(u => u.UserId == userId);
 
             if (localUser == null)
@@ -98,7 +98,6 @@ namespace Bokado.Server.Repositories
                 throw new ArgumentException("User not found");
             }
 
-            // Обновление аватара
             if (user.UserIcon != null)
             {
                 string webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Icons");
@@ -117,55 +116,46 @@ namespace Bokado.Server.Repositories
                 localUser.AvatarUrl = $"/Icons/{imageFileName}";
             }
 
-            // Обновление базовых полей
             localUser.Username = user.Username;
             localUser.BirthDate = user.BirthDate;
             localUser.Bio = user.Bio;
             localUser.Status = user.Status;
             localUser.City = user.City;
 
-            // Обновление пароля
             if (!string.IsNullOrEmpty(user.Password))
             {
                 localUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.Password);
             }
 
-            // Обработка интересов
             if (user.UserInterests != null && user.UserInterests.Any())
             {
-                // Получаем все существующие интересы из БД
                 var existingInterests = await _context.Interests.ToListAsync();
 
-                // Создаем новые интересы, если их нет в БД
                 foreach (var interestName in user.UserInterests)
                 {
                     if (!existingInterests.Any(i => i.Name.Equals(interestName, StringComparison.OrdinalIgnoreCase)))
                     {
                         var newInterest = new Interest { Name = interestName };
                         _context.Interests.Add(newInterest);
-                        await _context.SaveChangesAsync(); // Сохраняем, чтобы получить ID
-                        existingInterests.Add(newInterest); // Добавляем в локальный список
+                        await _context.SaveChangesAsync(); 
+                        existingInterests.Add(newInterest);
                     }
                 }
 
-                // Получаем ID всех запрошенных интересов
                 var requestedInterestIds = existingInterests
                     .Where(i => user.UserInterests.Contains(i.Name))
                     .Select(i => i.InterestId)
                     .ToList();
 
-                // Определяем какие интересы нужно добавить, а какие удалить
                 var currentInterestIds = localUser.UserInterests.Select(ui => ui.InterestId).ToList();
                 var interestsToAdd = requestedInterestIds.Except(currentInterestIds).ToList();
                 var interestsToRemove = currentInterestIds.Except(requestedInterestIds).ToList();
 
-                // Добавляем новые связи
                 foreach (var interestId in interestsToAdd)
                 {
                     localUser.UserInterests.Add(new UserInterest { InterestId = interestId, UserId = userId });
                 }
 
-                // Удаляем старые связи
                 foreach (var interestId in interestsToRemove)
                 {
                     var ui = localUser.UserInterests.First(ui => ui.InterestId == interestId);
@@ -174,7 +164,6 @@ namespace Bokado.Server.Repositories
             }
             else
             {
-                // Если интересы не переданы, удаляем все существующие
                 _context.UserInterests.RemoveRange(localUser.UserInterests);
             }
 

@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 /Bokado.Server/wwwroot/Messages
 /Bokado.Server/wwwroot/Icons
+wwwroot

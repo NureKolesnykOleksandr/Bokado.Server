@@ -1,6 +1,7 @@
 ﻿
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Bokado.Server.Models
 {
@@ -15,6 +16,7 @@ namespace Bokado.Server.Models
         public int FriendId { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        [JsonIgnore]
         public User User { get; set; }
         public User Friend { get; set; }
     }

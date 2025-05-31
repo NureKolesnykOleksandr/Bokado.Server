@@ -17,7 +17,7 @@ namespace Bokado.Server.Repositories
             _context = context;
         }
 
-        public async Task<Event> CreateEvent(EventDto eventDto, int creatorId)
+        public async Task<Event> CreateEvent(CreateEventDto eventDto, int creatorId)
         {
             if (eventDto.Maximum < 2)
             {
@@ -53,14 +53,77 @@ namespace Bokado.Server.Repositories
         }
 
 
-        public async Task<List<Event>> GetEvents()
+        public async Task<List<GetEventDto>> GetEvents()
         {
-            var events = await _context.Events.ToListAsync();
-            return events;
+            // Get all events
+            var events = await _context.Events
+                .Include(e => e.Creator)
+                .ToListAsync();
+
+            // Get all participants for these events
+            var eventParticipants = await _context.EventParticipants
+                .Where(ep => events.Select(e => e.EventId).Contains(ep.EventId))
+                .Include(ep => ep.User)
+                .ToListAsync();
+
+            // Create a lookup for participants by event ID
+            var participantsByEventId = eventParticipants
+                .GroupBy(ep => ep.EventId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(ep => new UserDto
+                    {
+                        UserId = ep.User.UserId,
+                        Username = ep.User.Username,
+                        Email = ep.User.Email,
+                        IsAdmin = ep.User.IsAdmin
+                    }).ToList()
+                );
+
+            var result = events.Select(e => new GetEventDto
+            {
+                EventId = e.EventId,
+                Title = e.Title,
+                Description = e.Description,
+                Date = e.Date,
+                City = e.City,
+                Maximum = e.Maximum,
+                CreatorId = e.CreatorId,
+                CreatedAt = e.CreatedAt,
+                Creator = new UserDto
+                {
+                    UserId = e.Creator.UserId,
+                    Username = e.Creator.Username,
+                    Email = e.Creator.Email,
+                    IsAdmin = e.Creator.IsAdmin
+                },
+                Participants = participantsByEventId.TryGetValue(e.EventId, out var participants)
+                    ? participants
+                    : new List<UserDto>()
+            }).ToList();
+
+            return result;
         }
 
         public async Task<IdentityResult> JoinEvent(int eventId, int userId)
         {
+            var Event = await _context.Events.Where(e => e.EventId == eventId).FirstOrDefaultAsync();
+            if (Event == null)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "Цього івенту не існує" });
+            }
+
+            if (await _context.EventParticipants.AnyAsync(ep => ep.EventId == eventId && ep.UserId == userId))
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "Ви вже приймаєте участь у цьому івенті"});
+            }
+
+
+            if (await _context.EventParticipants.Where(ep => ep.EventId == eventId).CountAsync() >= Event.Maximum)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "Максимум людей вже була досягнута" });
+            }
+            
             var newParticipant = _context.EventParticipants.Add(new EventParticipant() { EventId = eventId, UserId = userId, JoinedAt = DateTime.UtcNow });
             await _context.SaveChangesAsync();
             return IdentityResult.Success;

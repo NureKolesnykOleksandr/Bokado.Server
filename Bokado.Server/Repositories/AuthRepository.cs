@@ -70,6 +70,8 @@ namespace Bokado.Server.Repositories
                 throw new UnauthorizedAccessException("U SHALL NOT PASS!(u are banned, sorry 😢)");
             }
 
+            user.LastActive = DateTime.UtcNow;
+
             return new AuthResultDTO
             {
                 Token = GenerateJwtToken(user),

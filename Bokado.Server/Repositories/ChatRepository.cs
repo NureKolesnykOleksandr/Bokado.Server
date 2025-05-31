@@ -14,7 +14,6 @@ namespace Bokado.Server.Repositories
         private readonly SocialNetworkContext _context;
         private readonly FileService _fileService;
 
-
         public ChatRepository(SocialNetworkContext context, FileService fileService)
         {
             _context = context;
@@ -30,12 +29,12 @@ namespace Bokado.Server.Repositories
 
         public async Task<List<Message>> GetMessages(int chatId)
         {
-            var messages = await _context.Messages.Where(m=>m.ChatId == chatId).ToListAsync();
+            var messages = await _context.Messages.Where(m=>m.ChatId == chatId).Include(m=>m.Sender).ToListAsync();
             return messages;
         }
 
         public async Task<IdentityResult> SendMessage(int fromId,MessageDto messageDto)
-        {
+        {   
              var sender = await _context.Users
                 .Include(u => u.ChatParticipants)
                 .FirstOrDefaultAsync(u => u.UserId == fromId);
@@ -48,8 +47,6 @@ namespace Bokado.Server.Repositories
                 return IdentityResult.Failed(new IdentityError { Description = "Receiver not found" });
 
             var chat = await GetOrCreateChatAsync(sender, receiver);
-
-
 
             string attachmentPath = "";
             if (messageDto.attachedFile != null)

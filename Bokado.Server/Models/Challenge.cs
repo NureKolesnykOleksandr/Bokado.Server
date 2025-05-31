@@ -18,8 +18,6 @@ namespace Bokado.Server.Models
         public int Reward { get; set; }
         public DateTime CreatedAt { get; set; }
         public bool IsActive { get; set; } = false;
-
-        [JsonIgnore]
         public ICollection<UserChallenge> UserChallenges { get; set; }
     }
 }

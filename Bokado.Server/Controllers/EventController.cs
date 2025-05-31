@@ -24,7 +24,7 @@ namespace Bokado.Server.Controllers
         }
 
         [HttpGet("events")]
-        public async Task<ActionResult<List<Event>>> GetEvents()
+        public async Task<ActionResult> GetEvents()
         {
             var events = await _challengeRepository.GetEvents();
             return Ok(events);
@@ -32,7 +32,7 @@ namespace Bokado.Server.Controllers
 
         [Authorize]
         [HttpPost("events")]
-        public async Task<ActionResult<Event>> CreateEvent([FromBody] EventDto eventDto)
+        public async Task<ActionResult> CreateEvent([FromBody] CreateEventDto eventDto)
         {
             var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
             int currentUserId = GetUserIdFromToken(token);

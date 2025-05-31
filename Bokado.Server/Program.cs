@@ -19,6 +19,8 @@ builder.Services.AddDbContext<SocialNetworkContext>(options =>
 builder.Services.AddScoped<EmailService, EmailService>();
 builder.Services.AddScoped<FileService, FileService>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+builder.Services.AddScoped<IStatisticRepository, StatisticRepository>();
+builder.Services.AddScoped<ISubscribeRepository, SubscribeRepository>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IEventRepository, EventRepository>();
 builder.Services.AddScoped<IInterestRepository, InterestRepository>();
@@ -105,7 +107,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseStaticFiles();   
 app.UseHttpsRedirection();
-
+app.UseCors("DevelopmentPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 
