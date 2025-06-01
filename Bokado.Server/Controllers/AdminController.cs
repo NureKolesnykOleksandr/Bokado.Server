@@ -79,7 +79,7 @@ namespace Bokado.Server.Controllers
             return Ok(users);
         }
 
-        [HttpPut("/subscribe")]
+        [HttpPut("subscribe")]
         public async Task<IActionResult> GiveSubscribe(int userId)
         {
             var result = await _subscribeRepository.GiveSubscribe(userId);
@@ -88,7 +88,7 @@ namespace Bokado.Server.Controllers
                 : BadRequest(result.Errors);
         }
 
-        [HttpDelete("/subscribe")]
+        [HttpDelete("subscribe")]
         public async Task<IActionResult> TakeSubscribe(int userId)
         {
             var result = await _subscribeRepository.TakeSubscribe(userId);
