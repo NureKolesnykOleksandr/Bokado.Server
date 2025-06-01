@@ -90,6 +90,29 @@ namespace Bokado.Server.Controllers
             }
         }
 
+
+        [HttpDelete("{messageId}")]
+        public async Task<IActionResult> DeleteMessage(int messageId)
+        {
+            try
+            {
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
+                var result = await _chatRepository.DeleteMessage(currentUserId, messageId);
+
+                if (result.Succeeded)
+                {
+                    return Ok(new { Message = "Message deleted successfully" });
+                }
+
+                return BadRequest(result.Errors);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
         private int GetUserIdFromToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();

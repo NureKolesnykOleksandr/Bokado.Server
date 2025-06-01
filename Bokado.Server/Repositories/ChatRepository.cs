@@ -6,6 +6,7 @@ using Bokado.Server.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Crypto.Prng;
 using System.Runtime.Intrinsics.X86;
 
 namespace Bokado.Server.Repositories
@@ -76,6 +77,34 @@ namespace Bokado.Server.Repositories
                     IsAdmin = user2.IsAdmin
                 }
             };
+        }
+
+        public async Task<IdentityResult> DeleteMessage(int userId, int messageId)
+        {
+            User user = await _context.Users.Where(u => u.UserId == userId).FirstOrDefaultAsync();
+            if(user == null)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "User was not found" });
+            }
+
+            Chat chat = await _context.Messages.Where(m=>m.MessageId ==  messageId).Include(m=>m.Chat).Select(m=>m.Chat).FirstOrDefaultAsync();
+
+            if(!user.IsAdmin && !(await _context.ChatParticipants.Where(cp=>cp.ChatId == chat.ChatId && cp.UserId != userId).AnyAsync()))
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "Forbidden!" });
+            }
+
+            Message message = await _context.Messages.Where(m => m.MessageId == messageId).FirstOrDefaultAsync();
+            
+            if(message == null)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "Messagew was nod found!" });
+            }
+
+            _context.Messages.Remove(message);
+            await _context.SaveChangesAsync();
+
+            return IdentityResult.Success;
         }
 
         public async Task<List<ChatDto>> GetChats(int userId)
