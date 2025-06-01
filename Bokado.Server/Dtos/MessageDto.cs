@@ -4,7 +4,7 @@ namespace Bokado.Server.Dtos
 {
     public class MessageDto
     {
-        public int ToId { get; set; }
+        public int ChatId { get; set; }
         public string? Text { get; set; }
         public IFormFile? attachedFile { get; set; }
     }

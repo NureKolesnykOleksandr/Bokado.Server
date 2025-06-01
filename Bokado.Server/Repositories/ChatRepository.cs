@@ -6,6 +6,7 @@ using Bokado.Server.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.Intrinsics.X86;
 
 namespace Bokado.Server.Repositories
 {
@@ -20,11 +21,82 @@ namespace Bokado.Server.Repositories
             _fileService = fileService;
         }
 
-        public async Task<List<Chat>> GetChats(int userId)
+        public async Task<ChatDto> CreateChat(int fromId, int toId)
         {
-            List<int> chatIds = await _context.ChatParticipants.Where(cp => cp.UserId == userId).Select(cp => cp.ChatId).ToListAsync();
-            var chats = await _context.Chats.Where(c=>chatIds.Contains(c.ChatId)).ToListAsync();
-            return chats;
+            var user1 = await _context.Users.Where(u => u.UserId == fromId).FirstOrDefaultAsync();
+            var user2 = await _context.Users.Where(u => u.UserId == toId).FirstOrDefaultAsync();
+
+            if (user1 == null || user2 == null)
+            {
+                throw new KeyNotFoundException("One user was not found");
+            }
+
+            var existingChat = await _context.ChatParticipants
+                .Where(cp1 => cp1.UserId == user1.UserId)
+                .Join(_context.ChatParticipants.Where(cp2 => cp2.UserId == user2.UserId),
+                    cp1 => cp1.ChatId,
+                    cp2 => cp2.ChatId,
+                    (cp1, cp2) => new ChatDto
+                    {
+                        ChatId = cp1.Chat.ChatId,
+                        CreatedAt = cp1.Chat.CreatedAt,
+                        SecondMember = new UserDto
+                        {
+                            UserId = user2.UserId,
+                            Username = user2.Username,
+                            Email = user2.Email,
+                            IsAdmin = user2.IsAdmin
+                        }
+                    })
+                .FirstOrDefaultAsync();
+
+            if (existingChat != null)
+                return existingChat;
+
+            var newChat = new Chat { CreatedAt = DateTime.UtcNow };
+            _context.Chats.Add(newChat);
+            await _context.SaveChangesAsync();
+
+            _context.ChatParticipants.AddRange(
+                new ChatParticipant { ChatId = newChat.ChatId, UserId = user1.UserId },
+                new ChatParticipant { ChatId = newChat.ChatId, UserId = user2.UserId }
+            );
+
+            await _context.SaveChangesAsync();
+
+            return new ChatDto
+            {
+                ChatId = newChat.ChatId,
+                CreatedAt = newChat.CreatedAt,
+                SecondMember = new UserDto
+                {
+                    UserId = user2.UserId,
+                    Username = user2.Username,
+                    Email = user2.Email,
+                    IsAdmin = user2.IsAdmin
+                }
+            };
+        }
+
+        public async Task<List<ChatDto>> GetChats(int userId)
+        {
+            return await _context.ChatParticipants
+                .Where(cp => cp.UserId == userId)
+                .Select(cp => new ChatDto
+                {
+                    ChatId = cp.Chat.ChatId,
+                    CreatedAt = cp.Chat.CreatedAt,
+                    SecondMember = cp.Chat.Participants
+                        .Where(p => p.UserId != userId)
+                        .Select(p => new UserDto
+                        {
+                            UserId = p.User.UserId,
+                            Username = p.User.Username,
+                            Email = p.User.Email,
+                            IsAdmin = p.User.IsAdmin
+                        }).First()
+                })
+                .ToListAsync();
         }
 
         public async Task<List<Message>> GetMessages(int chatId)
@@ -42,11 +114,11 @@ namespace Bokado.Server.Repositories
             if (sender == null)
                 return IdentityResult.Failed(new IdentityError { Description = "Sender not found" });
 
-            var receiver = await _context.Users.FindAsync(messageDto.ToId);
-            if (receiver == null)
-                return IdentityResult.Failed(new IdentityError { Description = "Receiver not found" });
-
-            var chat = await GetOrCreateChatAsync(sender, receiver);
+            var chat = await _context.Chats.Where(c => c.ChatId == messageDto.ChatId).FirstOrDefaultAsync();
+            if(chat == null)
+            {
+                throw new KeyNotFoundException("Chat was not found");
+            }
 
             string attachmentPath = "";
             if (messageDto.attachedFile != null)
@@ -80,32 +152,6 @@ namespace Bokado.Server.Repositories
             await _context.SaveChangesAsync();
 
             return IdentityResult.Success;
-        }
-
-        private async Task<Chat> GetOrCreateChatAsync(User user1, User user2)
-        {
-            var existingChat = await _context.ChatParticipants
-                .Where(cp1 => cp1.UserId == user1.UserId)
-                .Join(_context.ChatParticipants.Where(cp2 => cp2.UserId == user2.UserId),
-                    cp1 => cp1.ChatId,
-                    cp2 => cp2.ChatId,
-                    (cp1, cp2) => cp1.Chat)
-                .FirstOrDefaultAsync();
-
-            if (existingChat != null)
-                return existingChat;
-
-            var newChat = new Chat { CreatedAt = DateTime.UtcNow };
-            _context.Chats.Add(newChat);
-            await _context.SaveChangesAsync();
-
-            _context.ChatParticipants.AddRange(
-                new ChatParticipant { ChatId = newChat.ChatId, UserId = user1.UserId },
-                new ChatParticipant { ChatId = newChat.ChatId, UserId = user2.UserId }
-            );
-
-            await _context.SaveChangesAsync();
-            return newChat;
         }
 
         private async Task<string> SaveAttachmentAsync(IFormFile file, string username)

@@ -22,7 +22,7 @@ namespace Bokado.Server.Controllers
         }
 
         [HttpGet("chats")]
-        public async Task<ActionResult<List<Chat>>> GetUserChats()
+        public async Task<ActionResult<List<ChatDto>>> GetUserChats()
         {
             try
             {
@@ -38,12 +38,29 @@ namespace Bokado.Server.Controllers
         }
 
         [HttpGet("{chatId}/messages")]
-        public async Task<ActionResult<List<Message>>> GetChatMessages(int chatId)
+        public async Task<ActionResult> GetChatMessages(int chatId)
         {
             try
             {
                 var messages = await _chatRepository.GetMessages(chatId);
                 return Ok(messages);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost("Create")]
+        public async Task<IActionResult> CreateChat(int withUserId)
+        {
+            try
+            {
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
+                var result = await _chatRepository.CreateChat(currentUserId, withUserId);
+
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -58,7 +75,7 @@ namespace Bokado.Server.Controllers
             {
                 var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
                 int currentUserId = GetUserIdFromToken(token);
-                var result = await _chatRepository.SendMessage(currentUserId,message);
+                var result = await _chatRepository.SendMessage(currentUserId, message);
 
                 if (result.Succeeded)
                 {

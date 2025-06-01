@@ -23,6 +23,12 @@ namespace Bokado.Server.Repositories
         public async Task<UserInfoDto> GetUserProfile(int userId)
         {
             User user = await _context.Users.Where(u=>u.UserId == userId).FirstOrDefaultAsync();
+
+            if (user == null)
+            {
+                throw new KeyNotFoundException("Цього користувача не було знайдено");
+            }
+
             return new UserInfoDto()
             {
                 AvatarUrl = user.AvatarUrl,
@@ -54,6 +60,11 @@ namespace Bokado.Server.Repositories
                 .Include(u => u.Messages)
                 .Include(u => u.CreatedEvents)
                 .FirstOrDefaultAsync();
+
+            if(user == null)
+            {
+                throw new KeyNotFoundException("Цього користувача не було знайдено");
+            }
 
             var userInterestIds = await _context.UserInterests
                 .Where(ui => ui.UserId == userId)
