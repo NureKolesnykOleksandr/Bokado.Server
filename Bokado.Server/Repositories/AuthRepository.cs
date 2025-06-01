@@ -139,27 +139,5 @@ namespace Bokado.Server.Repositories
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }
-
-        public async Task<AuthResultDTO> LoginGoogle(GoogleLoginDTO dto)
-        {            
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-
-            if (user == null)
-            {
-                user = new User
-                {
-                    Username = dto.Name ?? dto.Email.Split('@')[0],
-                    Email = dto.Email,
-                    GoogleId = dto.GoogleId
-                };
-                _context.Users.Add(user);
-                await _context.SaveChangesAsync();
-            }
-
-            var token = GenerateJwtToken(user);
-
-            var result = new AuthResultDTO { Token = token, User = new UserDto {IsAdmin = user.IsAdmin, Email = user.Email, UserId = user.UserId, Username = user.Username } };
-            return result;
-        }
     }
 }

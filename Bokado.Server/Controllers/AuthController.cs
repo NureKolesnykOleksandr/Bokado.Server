@@ -4,7 +4,6 @@ using Bokado.Server.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
 using Bokado.Server.Models;
-using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -48,30 +47,6 @@ namespace Bokado.Server.Controllers
             {
                 return Unauthorized(ex.Message);
             }
-        }
-
-        [HttpGet("google")]
-        public IActionResult GoogleLogin()
-        {
-            var properties = new AuthenticationProperties
-            {
-                RedirectUri = Url.Action("GoogleCallback")
-            };
-            return Challenge(properties, GoogleDefaults.AuthenticationScheme);
-        }
-
-        [HttpGet("google-callback")]
-        public async Task<IActionResult> GoogleCallback()
-        {
-            var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
-
-            var googleId = result.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
-            var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
-
-            var resultDto = await _authRepository.LoginGoogle(new GoogleLoginDTO { Email = email, GoogleId = googleId, Name = name});
-
-            return Redirect($"http://localhost:5173/dashboard?token={resultDto.Token}");
         }
 
         [HttpPost("reset-password")]
