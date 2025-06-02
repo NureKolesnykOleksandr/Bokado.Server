@@ -73,6 +73,10 @@ namespace Bokado.Server.Controllers
         {
             try
             {
+                if(message.Text == null){
+                    message.Text = "";
+                }
+
                 var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
                 int currentUserId = GetUserIdFromToken(token);
                 var result = await _chatRepository.SendMessage(currentUserId, message);
