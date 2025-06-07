@@ -74,6 +74,30 @@ namespace Bokado.Server.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [Authorize]
+        [HttpPut("{eventId}")]
+        public async Task<IActionResult> UpdateEvent(int eventId, UpdateEventDto eventDto)
+        {
+            try
+            {
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
+                var result = await _challengeRepository.UpdateEvent(eventId, currentUserId, eventDto);
+
+                if (!result.Succeeded)
+                {
+                    return BadRequest(result.Errors);
+                }
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         private int GetUserIdFromToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();

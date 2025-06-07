@@ -95,7 +95,7 @@ namespace Bokado.Server.Controllers
         }
 
 
-        [HttpDelete("{messageId}")]
+        [HttpDelete("message/{messageId}")]
         public async Task<IActionResult> DeleteMessage(int messageId)
         {
             try
@@ -116,6 +116,30 @@ namespace Bokado.Server.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
+        [HttpDelete("{chatId}")]
+        public async Task<IActionResult> DeleteChat(int chatId)
+        {
+            try
+            {
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                int currentUserId = GetUserIdFromToken(token);
+                var result = await _chatRepository.DeleteChat(currentUserId, chatId);
+
+                if (result.Succeeded)
+                {
+                    return Ok(new { Message = "Chat deleted successfully" });
+                }
+
+                return BadRequest(result.Errors);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+
 
         private int GetUserIdFromToken(string token)
         {

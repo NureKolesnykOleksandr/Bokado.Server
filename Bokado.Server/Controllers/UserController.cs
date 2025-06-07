@@ -9,7 +9,6 @@ using System.Security.Claims;
 
 namespace Bokado.Server.Controllers
 {
-    [Authorize]
     [Route("api/users")]
     [ApiController]
     public class UserController : ControllerBase
@@ -21,6 +20,7 @@ namespace Bokado.Server.Controllers
             _userRepository = userRepository;
         }
 
+        [Authorize]
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetUserProfile(int userId)
         {
@@ -35,6 +35,7 @@ namespace Bokado.Server.Controllers
             }
         }
 
+        [Authorize]
         [HttpGet("GetDetail/{userId}")]
         public async Task<IActionResult> GetDetailedUser(int userId)
         {
@@ -50,6 +51,21 @@ namespace Bokado.Server.Controllers
 
                 var user = await _userRepository.GetDetailedUserInfo(userId);
                 return Ok(user);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+        
+
+        [HttpGet("Count")]
+        public async Task<IActionResult> GetUsersCount()
+        {
+            try
+            {
+                var result = await _userRepository.GetUserCount();
+                return Ok(result);
             }
             catch (KeyNotFoundException ex)
             {
@@ -85,6 +101,7 @@ namespace Bokado.Server.Controllers
             }
         }
 
+        [Authorize]
         [HttpPut("{userId}")]
         public async Task<IActionResult> UpdateProfile(int userId, [FromForm] UpdateUserDto user)
         {

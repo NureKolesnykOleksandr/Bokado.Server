@@ -143,5 +143,34 @@ namespace Bokado.Server.Repositories
 
             return IdentityResult.Success;
         }
+
+        public async Task<IdentityResult> UpdateEvent(int eventId, int userId, UpdateEventDto eventDto)
+        {
+            var Event = await _context.Events.FindAsync(eventId);
+            var user = await _context.Users.FindAsync(userId);
+
+            if (Event == null)
+            {
+                return IdentityResult.Failed(new IdentityError {  Description = "Event was not found"});
+            }
+            if (user == null)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "User was not found" });
+            }
+            if (Event.CreatorId != userId && !user.IsAdmin)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "You don`t have permission to update this Event" });
+            }
+
+            Event.Title = eventDto.Title ?? Event.Title;
+            Event.Description = eventDto.Description ?? Event.Description;
+            Event.Date = eventDto.Date ?? Event.Date;
+            Event.City = eventDto.City ?? Event.City;
+
+            await _context.SaveChangesAsync();
+
+            return IdentityResult.Success;
+
+        }
     }
 }

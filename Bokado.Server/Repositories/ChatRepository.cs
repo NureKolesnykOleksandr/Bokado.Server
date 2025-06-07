@@ -79,6 +79,22 @@ namespace Bokado.Server.Repositories
             };
         }
 
+        public async Task<IdentityResult> DeleteChat(int userId, int chatId)
+        {
+            var user = await _context.ChatParticipants.Where(cp => cp.UserId == userId && cp.ChatId == chatId).Include(cp=>cp.Chat).FirstOrDefaultAsync();
+            bool isAdmin = await _context.Users.Where(u=>u.UserId == userId).Select(u=>u.IsAdmin).FirstOrDefaultAsync();
+            
+            if(user == null && !isAdmin)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "You don`t have a permisson to delete this chat"});
+            }
+
+            _context.Chats.Remove(user.Chat);
+            await _context.SaveChangesAsync();
+
+            return IdentityResult.Success;
+        }
+
         public async Task<IdentityResult> DeleteMessage(int userId, int messageId)
         {
             User user = await _context.Users.Where(u => u.UserId == userId).FirstOrDefaultAsync();

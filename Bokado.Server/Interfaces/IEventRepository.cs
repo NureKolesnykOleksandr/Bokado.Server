@@ -10,5 +10,6 @@ namespace Bokado.Server.Interfaces
         Task<Event> CreateEvent(CreateEventDto eventDto, int creatorId);
         Task<IdentityResult> JoinEvent(int eventId, int userId);
         Task<IdentityResult> QuitEvent(int eventId, int userId);
+        Task<IdentityResult> UpdateEvent(int eventId, int userId, UpdateEventDto eventDto);
     }
 }

@@ -16,8 +16,8 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<SocialNetworkContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSqlConnection")));
 
-builder.Services.AddScoped<EmailService, EmailService>();
-builder.Services.AddScoped<FileService, FileService>();
+builder.Services.AddSingleton<EmailService, EmailService>();
+builder.Services.AddSingleton<FileService, FileService>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IStatisticRepository, StatisticRepository>();
 builder.Services.AddScoped<ISubscribeRepository, SubscribeRepository>();

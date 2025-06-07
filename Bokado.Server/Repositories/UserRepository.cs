@@ -185,5 +185,11 @@ namespace Bokado.Server.Repositories
 
             await _context.SaveChangesAsync();
         }
+
+        public async Task<int> GetUserCount()
+        {
+            int result = await _context.Users.CountAsync();
+            return result;
+        }
     }
 }

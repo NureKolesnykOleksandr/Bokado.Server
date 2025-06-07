@@ -20,6 +20,14 @@ namespace Bokado.Server.Dtos
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
+    public class UpdateEventDto
+    {
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public DateTime? Date { get; set; }
+        public string? City { get; set; }
+    }
+
 
     public class GetEventDto
     {
