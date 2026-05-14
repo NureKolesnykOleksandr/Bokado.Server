@@ -1,10 +1,11 @@
-﻿using Bokado.Server.Interfaces;
+﻿using Bokado.Server.Dtos;
+using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace Bokado.Server.Controllers
 {
@@ -14,14 +15,17 @@ namespace Bokado.Server.Controllers
     public class AdminController : ControllerBase
     {
         private readonly IAdminRepository _adminRepository;
-        private readonly IStatisticRepository _statisticRepository;
         private readonly ISubscribeRepository _subscribeRepository;
+        private readonly IChatRepository _chatRepository;
 
-        public AdminController(IAdminRepository adminRepository, IStatisticRepository statisticRepository, ISubscribeRepository subscribeRepository)
+        public AdminController(
+            IAdminRepository adminRepository,
+            ISubscribeRepository subscribeRepository,
+            IChatRepository chatRepository)
         {
             _adminRepository = adminRepository;
-            _statisticRepository = statisticRepository;
             _subscribeRepository = subscribeRepository;
+            _chatRepository = chatRepository;
         }
 
         [HttpPost("ban/{userId}")]
@@ -49,20 +53,6 @@ namespace Bokado.Server.Controllers
             return result.Succeeded
                 ? Ok(new { Message = "Challenges updated successfully" })
                 : BadRequest(result.Errors);
-        }
-
-        [HttpGet("stats/Users")]
-        public async Task<IActionResult> GetUsersPerMonth()
-        {
-            var usersPerMonth = await _statisticRepository.GetUsersPerMonth();
-            return Ok(usersPerMonth);
-        }
-
-        [HttpGet("stats/Challenges")]
-        public async Task<IActionResult> GetChallengesCompleted()
-        {
-            var completedChallenges = await _statisticRepository.GetChallengesCompleted();
-            return Ok(completedChallenges);
         }
 
         [HttpGet("allChallenges")]
@@ -95,6 +85,41 @@ namespace Bokado.Server.Controllers
             return result.Succeeded
                 ? Ok(new { Message = "User lost subscribe" })
                 : BadRequest(result.Errors);
+        }
+
+        [HttpPost("warn/{userId}")]
+        public async Task<IActionResult> WarnUser(int userId, [FromBody] WarnUserDto dto)
+        {
+            var result = await _adminRepository.WarnUser(userId, dto.Reason);
+            return result.Succeeded
+                ? Ok(new { Message = "Warning sent" })
+                : BadRequest(result.Errors);
+        }
+
+        [HttpPost("support-chat/{userId}")]
+        public async Task<IActionResult> OpenSupportChat(int userId)
+        {
+            try
+            {
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                var adminId = GetUserIdFromToken(token);
+                var chat = await _chatRepository.CreateChat(adminId, userId);
+                return Ok(chat);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+
+        private int GetUserIdFromToken(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var jwtToken = tokenHandler.ReadJwtToken(token);
+            var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                throw new SecurityTokenException("User ID not found in token");
+            return userId;
         }
     }
 }

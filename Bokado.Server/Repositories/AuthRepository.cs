@@ -1,5 +1,4 @@
-﻿// Repositories/AuthRepository.cs
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
 using Microsoft.EntityFrameworkCore;
@@ -45,7 +44,7 @@ namespace Bokado.Server.Repositories
                 Username = dto.Username,
                 Email = dto.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                BirthDate = dto.BirthDate
+                BirthDate = DateTime.SpecifyKind(dto.BirthDate, DateTimeKind.Utc)
             };
 
             _context.Users.Add(user);
@@ -126,7 +125,8 @@ namespace Bokado.Server.Repositories
                     new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                     new Claim(ClaimTypes.Name, user.Username),
                     new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "User")
+                    new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "User"),
+                    new Claim("isPremium", user.IsPremium.ToString().ToLower())
                 }),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials = new SigningCredentials(

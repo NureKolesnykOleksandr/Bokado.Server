@@ -53,7 +53,6 @@ namespace Bokado.Server.Repositories
                 .Where(u => u.UserId == userId)
                 .Include(u => u.UserInterests)
                 .Include(u => u.Friends)
-                .Include(u => u.Swipes)
                 .Include(u => u.ChatParticipants)
                 .Include(u => u.EventParticipants)
                 .Include(u => u.UserChallenges)
@@ -91,7 +90,6 @@ namespace Bokado.Server.Repositories
                 Level = user.Level,
                 UserId = userId,
                 Username = user.Username,
-                Swipes = user.Swipes,
                 ChatParticipants = user.ChatParticipants,
                 CreatedEvents = user.CreatedEvents,
                 EventParticipants = user.EventParticipants,
@@ -133,7 +131,7 @@ namespace Bokado.Server.Repositories
             }
 
             localUser.Username = user.Username;
-            localUser.BirthDate = user.BirthDate;
+            localUser.BirthDate = DateTime.SpecifyKind(user.BirthDate, DateTimeKind.Utc);
             localUser.Bio = user.Bio;
             localUser.Status = user.Status;
             localUser.City = user.City;
@@ -190,6 +188,22 @@ namespace Bokado.Server.Repositories
         {
             int result = await _context.Users.CountAsync();
             return result;
+        }
+
+        public async Task<UserOnlineStatusDto> GetOnlineStatus(int userId)
+        {
+            var user = await _context.Users
+                .Where(u => u.UserId == userId)
+                .Select(u => new { u.UserId, u.LastActive })
+                .FirstOrDefaultAsync()
+                ?? throw new KeyNotFoundException("Користувача не знайдено");
+
+            return new UserOnlineStatusDto
+            {
+                UserId = user.UserId,
+                IsOnline = DateTime.UtcNow - user.LastActive < TimeSpan.FromMinutes(5),
+                LastActive = user.LastActive
+            };
         }
     }
 }

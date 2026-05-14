@@ -57,9 +57,8 @@ namespace Bokado.Server.Repositories
                         .Any(e => e.CreatorId == userId)
                 },
                 {
-                    7, userId => _context.Swipes
-                        .Count(s => s.SwipeId == userId &&
-                              s.Action == "like") >= 7
+                    7, userId => _context.Friendships
+                        .Count(f => f.UserId == userId || f.FriendId == userId) >= 7
                 },
                 {
                     8, userId => _context.Messages
@@ -79,13 +78,51 @@ namespace Bokado.Server.Repositories
                         var user = _context.Users
                             .Include(u => u.UserInterests)
                             .FirstOrDefault(u => u.UserId == userId);
-            
+
                         return user != null &&
                                user.UserInterests.Any() &&
                                user.BirthDate != null &&
                                user.AvatarUrl != null &&
                                !string.IsNullOrEmpty(user.Bio);
                     }
+                },
+                {
+                    11, userId => _context.Posts.Any(p => p.UserId == userId)
+                },
+                {
+                    12, userId => _context.Posts
+                        .Include(p => p.Likes)
+                        .Any(p => p.UserId == userId && p.Likes.Count >= 5)
+                },
+                {
+                    13, userId => _context.GroupMembers.Any(gm => gm.UserId == userId)
+                },
+                {
+                    14, userId => _context.Groups.Any(g => g.CreatorId == userId)
+                },
+                {
+                    15, userId => _context.Messages.Any(m =>
+                        m.SenderId == userId &&
+                        !string.IsNullOrEmpty(m.Attachment) &&
+                        (m.Attachment.EndsWith(".jpg") || m.Attachment.EndsWith(".jpeg") ||
+                         m.Attachment.EndsWith(".png") || m.Attachment.EndsWith(".gif")))
+                },
+                {
+                    16, userId => _context.Messages.Any(m =>
+                        m.SenderId == userId && m.Text.Contains("Відеодзвінок розпочато:"))
+                },
+                {
+                    17, userId => _context.FriendRequests.Count(fr => fr.ToUserId == userId) >= 3
+                },
+                {
+                    18, userId => _context.Friendships
+                        .Count(f => f.UserId == userId || f.FriendId == userId) >= 10
+                },
+                {
+                    19, userId => _context.PostLikes.Count(pl => pl.UserId == userId) >= 10
+                },
+                {
+                    20, userId => _context.GroupMembers.Count(gm => gm.UserId == userId) >= 3
                 }
             };
         }
@@ -145,6 +182,14 @@ namespace Bokado.Server.Repositories
 
         public async Task<List<ChallengeDto>> GetChallenges(int userId)
         {
+            int totalUsers = await _context.Users.CountAsync(u => !u.IsAdmin);
+
+            var completionCounts = await _context.UserChallenges
+                .Where(uc => uc.IsCompleted)
+                .GroupBy(uc => uc.ChallengeId)
+                .Select(g => new { ChallengeId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.ChallengeId, x => x.Count);
+
             var query = from challenge in _context.Challenges
                         where challenge.IsActive
                         join userChallenge in _context.UserChallenges
@@ -162,7 +207,17 @@ namespace Bokado.Server.Repositories
                             CompletedAt = uc != null ? uc.CompletedAt : null
                         };
 
-            return await query.ToListAsync();
+            var list = await query.ToListAsync();
+
+            foreach (var dto in list)
+            {
+                int count = completionCounts.GetValueOrDefault(dto.ChallengeId, 0);
+                dto.CompletionRate = totalUsers > 0
+                    ? Math.Round((double)count / totalUsers * 100, 1)
+                    : 0;
+            }
+
+            return list;
         }
     }
 }

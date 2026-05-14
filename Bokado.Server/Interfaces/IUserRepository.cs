@@ -9,5 +9,6 @@ namespace Bokado.Server.Interfaces
         Task<UserDetailInfoDto> GetDetailedUserInfo(int userId);
         Task UpdateUserProfile(int userId, UpdateUserDto user);
         Task<int> GetUserCount();
+        Task<UserOnlineStatusDto> GetOnlineStatus(int userId);
     }
 }

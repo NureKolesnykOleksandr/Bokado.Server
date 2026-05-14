@@ -54,6 +54,18 @@ namespace Bokado.Server.Dtos
         public ICollection<string>? UserInterests { get; set; }
     }
 
+    public class WarnUserDto
+    {
+        public string Reason { get; set; }
+    }
+
+    public class UserOnlineStatusDto
+    {
+        public int UserId { get; set; }
+        public bool IsOnline { get; set; }
+        public DateTime LastActive { get; set; }
+    }
+
     public class UserDetailInfoDto
     {
         [Key]
@@ -73,7 +85,6 @@ namespace Bokado.Server.Dtos
         public DateTime LastActive { get; set; }
         public ICollection<Interest> UserInterests { get; set; }
         public ICollection<Friendship> Friends { get; set; }
-        public ICollection<Swipe> Swipes { get; set; }
         public ICollection<ChatParticipant> ChatParticipants { get; set; }
         public ICollection<EventParticipant> EventParticipants { get; set; }
         public ICollection<UserChallenge> UserChallenges { get; set; }

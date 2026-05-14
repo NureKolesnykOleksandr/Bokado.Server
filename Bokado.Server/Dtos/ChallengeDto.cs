@@ -1,8 +1,3 @@
-﻿using Bokado.Server.Models;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
-
 namespace Bokado.Server.Dtos
 {
     public class ChallengeDto
@@ -13,5 +8,6 @@ namespace Bokado.Server.Dtos
         public int Reward { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
+        public double CompletionRate { get; set; }
     }
 }

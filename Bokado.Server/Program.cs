@@ -16,7 +16,7 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<SocialNetworkContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSqlConnection")));
 
-builder.Services.AddSingleton<EmailService, EmailService>();
+builder.Services.AddScoped<EmailService, EmailService>();
 builder.Services.AddSingleton<FileService, FileService>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IStatisticRepository, StatisticRepository>();
@@ -27,6 +27,8 @@ builder.Services.AddScoped<IInterestRepository, InterestRepository>();
 builder.Services.AddScoped<IChallengeRepository, ChallengeRepository>();
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddScoped<IFriendsRepository, FriendsRepository>();
+builder.Services.AddScoped<IGroupRepository, GroupRepository>();
+builder.Services.AddScoped<IPostRepository, PostRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");

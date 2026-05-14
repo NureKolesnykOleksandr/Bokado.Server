@@ -35,7 +35,9 @@ namespace Bokado.Server.Models
         [JsonIgnore]
         public ICollection<Friendship>? Friends { get; set; }
         [JsonIgnore]
-        public ICollection<Swipe>? Swipes { get; set; }
+        public ICollection<FriendRequest>? SentFriendRequests { get; set; }
+        [JsonIgnore]
+        public ICollection<FriendRequest>? ReceivedFriendRequests { get; set; }
         [JsonIgnore]
         public ICollection<ChatParticipant>? ChatParticipants { get; set; }
         [JsonIgnore]

@@ -97,30 +97,36 @@ namespace Bokado.Server.Repositories
 
         public async Task<IdentityResult> DeleteMessage(int userId, int messageId)
         {
-            User user = await _context.Users.Where(u => u.UserId == userId).FirstOrDefaultAsync();
-            if(user == null)
+            var message = await _context.Messages.FindAsync(messageId);
+            if (message == null)
+                return IdentityResult.Failed(new IdentityError { Description = "Повідомлення не знайдено" });
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+                return IdentityResult.Failed(new IdentityError { Description = "Користувача не знайдено" });
+
+            if (user.IsAdmin || message.SenderId == userId)
             {
-                return IdentityResult.Failed(new IdentityError { Description = "User was not found" });
+                _context.Messages.Remove(message);
+                await _context.SaveChangesAsync();
+                return IdentityResult.Success;
             }
 
-            Chat chat = await _context.Messages.Where(m=>m.MessageId ==  messageId).Include(m=>m.Chat).Select(m=>m.Chat).FirstOrDefaultAsync();
-
-            if(!user.IsAdmin && !(await _context.ChatParticipants.Where(cp=>cp.ChatId == chat.ChatId && cp.UserId != userId).AnyAsync()))
+            var group = await _context.Groups.FirstOrDefaultAsync(g => g.ChatId == message.ChatId);
+            if (group != null)
             {
-                return IdentityResult.Failed(new IdentityError { Description = "Forbidden!" });
+                var member = await _context.GroupMembers
+                    .FirstOrDefaultAsync(m => m.GroupId == group.GroupId && m.UserId == userId);
+
+                if (member != null && (member.Role == GroupMemberRole.Admin || member.Role == GroupMemberRole.Owner))
+                {
+                    _context.Messages.Remove(message);
+                    await _context.SaveChangesAsync();
+                    return IdentityResult.Success;
+                }
             }
 
-            Message message = await _context.Messages.Where(m => m.MessageId == messageId).FirstOrDefaultAsync();
-            
-            if(message == null)
-            {
-                return IdentityResult.Failed(new IdentityError { Description = "Messagew was nod found!" });
-            }
-
-            _context.Messages.Remove(message);
-            await _context.SaveChangesAsync();
-
-            return IdentityResult.Success;
+            return IdentityResult.Failed(new IdentityError { Description = "Немає прав для видалення цього повідомлення" });
         }
 
         public async Task<List<ChatDto>> GetChats(int userId)
@@ -146,7 +152,7 @@ namespace Bokado.Server.Repositories
 
         public async Task<List<Message>> GetMessages(int chatId)
         {
-            var messages = await _context.Messages.Where(m=>m.ChatId == chatId).Include(m=>m.Sender).ToListAsync();
+            var messages = await _context.Messages.Where(m=>m.ChatId == chatId).Include(m=>m.Sender).OrderBy(m=>m.SentAt).ToListAsync();
             return messages;
         }
 

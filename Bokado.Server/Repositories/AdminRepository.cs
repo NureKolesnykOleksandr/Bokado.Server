@@ -2,6 +2,7 @@
 using Bokado.Server.Dtos;
 using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
+using Bokado.Server.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Asn1.Cmp;
@@ -12,10 +13,12 @@ namespace Bokado.Server.Repositories
     public class AdminRepository : IAdminRepository
     {
         private readonly SocialNetworkContext _context;
+        private readonly EmailService _emailService;
 
-        public AdminRepository(SocialNetworkContext context)
+        public AdminRepository(SocialNetworkContext context, EmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         public async Task<IdentityResult> BanUser(int userId)
@@ -82,12 +85,31 @@ namespace Bokado.Server.Repositories
             return challenges;
         }
 
+        public async Task<IdentityResult> WarnUser(int userId, string reason)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+                return IdentityResult.Failed(new IdentityError { Description = "Користувача не знайдено" });
+
+            var subject = "Попередження від адміністрації Bokado";
+            var body = $"Шановний {user.Username},\n\n" +
+                       $"Ви отримали попередження від адміністрації платформи Bokado.\n\n" +
+                       $"Причина: {reason}\n\n" +
+                       $"Будь ласка, дотримуйтесь правил платформи, щоб уникнути блокування акаунту.\n\n" +
+                       $"З повагою,\nКоманда Bokado";
+
+            var sent = await _emailService.SendEmailAsync(user.Email, subject, body, user.Username);
+            if (!sent)
+                return IdentityResult.Failed(new IdentityError { Description = "Не вдалося надіслати email" });
+
+            return IdentityResult.Success;
+        }
+
         public async Task<IEnumerable<UserDetailInfoDto>> GetaAllUsers()
         {
             List<User> users = await _context.Users
                 .Include(u => u.UserInterests)
                 .Include(u => u.Friends)
-                .Include(u => u.Swipes)
                 .Include(u => u.ChatParticipants)
                 .Include(u => u.EventParticipants)
                 .Include(u => u.UserChallenges)
@@ -117,7 +139,6 @@ namespace Bokado.Server.Repositories
                 IsPremium = user.IsPremium,
                 Level = user.Level,
                 Status = user.Status,
-                Swipes = user.Swipes.Select(s=> new Swipe { Action = s.Action, IsMatch = s.IsMatch, SwipedAt = s.SwipedAt, SwipeId = s.SwipeId, TargetUser = s.TargetUser, TargetUserId = s.TargetUserId, SwiperId = s.SwiperId}).ToList(),
                 Messages = user.Messages.Select(m=> new Message { MessageId = m.MessageId, Attachment = m.Attachment, Text = m.Text, ChatId = m.ChatId, IsRead = m.IsRead, SenderId = m.SenderId, SentAt = m.SentAt}).ToList(),
                 Friends = user.Friends.Select(f=> new Friendship { CreatedAt = f.CreatedAt, FriendId = f.FriendId, FriendshipId = f.FriendshipId, UserId = f.UserId}).ToList(),
                 UserChallenges = user.UserChallenges.Select(uc=> new UserChallenge { Challenge = uc.Challenge, UserId = uc.UserId, ChallengeId = uc.ChallengeId, CompletedAt = uc.CompletedAt, IsCompleted = uc.IsCompleted, UserChallengeId = uc.UserChallengeId}).ToList(),

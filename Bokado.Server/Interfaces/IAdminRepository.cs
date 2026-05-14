@@ -11,6 +11,6 @@ namespace Bokado.Server.Interfaces
         Task<IdentityResult> SelectChallenges(ICollection<int> challengeIds);
         Task<IEnumerable<Challenge>> GetaAllChallenges();
         Task<IEnumerable<UserDetailInfoDto>> GetaAllUsers();
-
+        Task<IdentityResult> WarnUser(int userId, string reason);
     }
 }

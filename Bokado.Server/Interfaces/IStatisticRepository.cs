@@ -1,5 +1,4 @@
-﻿using Bokado.Server.Dtos;
-using Bokado.Server.Models;
+using Bokado.Server.Dtos;
 
 namespace Bokado.Server.Interfaces
 {
@@ -7,5 +6,6 @@ namespace Bokado.Server.Interfaces
     {
         Task<List<Dictionary<DateOnly, List<UserInfoDto>>>> GetUsersPerMonth();
         Task<Dictionary<string, int>> GetChallengesCompleted();
+        Task<object> GetOverview();
     }
 }

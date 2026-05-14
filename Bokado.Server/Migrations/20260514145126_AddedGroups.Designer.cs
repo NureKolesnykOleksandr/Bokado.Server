@@ -3,6 +3,7 @@ using System;
 using Bokado.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Bokado.Server.Migrations
 {
     [DbContext(typeof(SocialNetworkContext))]
-    partial class SocialNetworkContextModelSnapshot : ModelSnapshot
+    [Migration("20260514145126_AddedGroups")]
+    partial class AddedGroups
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -141,96 +144,6 @@ namespace Bokado.Server.Migrations
                             IsActive = false,
                             Reward = 1,
                             Title = "Профільний експерт"
-                        },
-                        new
-                        {
-                            ChallengeId = 11,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Опублікуй свій перший пост",
-                            IsActive = false,
-                            Reward = 1,
-                            Title = "Перший пост"
-                        },
-                        new
-                        {
-                            ChallengeId = 12,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Отримай 5 лайків на один пост",
-                            IsActive = false,
-                            Reward = 2,
-                            Title = "Популярний контент"
-                        },
-                        new
-                        {
-                            ChallengeId = 13,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Вступи в свою першу групу",
-                            IsActive = false,
-                            Reward = 1,
-                            Title = "Груповий учасник"
-                        },
-                        new
-                        {
-                            ChallengeId = 14,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Створи власну групу",
-                            IsActive = false,
-                            Reward = 3,
-                            Title = "Лідер спільноти"
-                        },
-                        new
-                        {
-                            ChallengeId = 15,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Надішли фото у повідомленні",
-                            IsActive = false,
-                            Reward = 1,
-                            Title = "Фотограф"
-                        },
-                        new
-                        {
-                            ChallengeId = 16,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Запусти відеодзвінок у групі",
-                            IsActive = false,
-                            Reward = 2,
-                            Title = "Відеоорганізатор"
-                        },
-                        new
-                        {
-                            ChallengeId = 17,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Отримай 3 запити на дружбу",
-                            IsActive = false,
-                            Reward = 2,
-                            Title = "Магніт"
-                        },
-                        new
-                        {
-                            ChallengeId = 18,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Набери 10 друзів",
-                            IsActive = false,
-                            Reward = 3,
-                            Title = "Відданий друг"
-                        },
-                        new
-                        {
-                            ChallengeId = 19,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Постав 10 лайків на пости інших",
-                            IsActive = false,
-                            Reward = 1,
-                            Title = "Активний лайкер"
-                        },
-                        new
-                        {
-                            ChallengeId = 20,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Вступи в 3 різні групи",
-                            IsActive = false,
-                            Reward = 3,
-                            Title = "Командний гравець"
                         });
                 });
 
@@ -341,33 +254,6 @@ namespace Bokado.Server.Migrations
                     b.ToTable("event_participants");
                 });
 
-            modelBuilder.Entity("Bokado.Server.Models.FriendRequest", b =>
-                {
-                    b.Property<int>("FriendRequestId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("FriendRequestId"));
-
-                    b.Property<int>("FromUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("SentAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("ToUserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("FriendRequestId");
-
-                    b.HasIndex("ToUserId");
-
-                    b.HasIndex("FromUserId", "ToUserId")
-                        .IsUnique();
-
-                    b.ToTable("friend_requests");
-                });
-
             modelBuilder.Entity("Bokado.Server.Models.Friendship", b =>
                 {
                     b.Property<int>("FriendshipId")
@@ -404,10 +290,6 @@ namespace Bokado.Server.Migrations
 
                     b.Property<int>("ChatId")
                         .HasColumnType("integer");
-
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -472,9 +354,6 @@ namespace Bokado.Server.Migrations
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("Role")
-                        .HasColumnType("integer");
-
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
 
@@ -502,68 +381,6 @@ namespace Bokado.Server.Migrations
                     b.HasKey("InterestId");
 
                     b.ToTable("interests");
-
-                    b.HasData(
-                        new
-                        {
-                            InterestId = 1,
-                            Name = "Ігри"
-                        },
-                        new
-                        {
-                            InterestId = 2,
-                            Name = "Музика"
-                        },
-                        new
-                        {
-                            InterestId = 3,
-                            Name = "Кіно"
-                        },
-                        new
-                        {
-                            InterestId = 4,
-                            Name = "Спорт"
-                        },
-                        new
-                        {
-                            InterestId = 5,
-                            Name = "Подорожі"
-                        },
-                        new
-                        {
-                            InterestId = 6,
-                            Name = "Кулінарія"
-                        },
-                        new
-                        {
-                            InterestId = 7,
-                            Name = "Мистецтво"
-                        },
-                        new
-                        {
-                            InterestId = 8,
-                            Name = "Технології"
-                        },
-                        new
-                        {
-                            InterestId = 9,
-                            Name = "Книги"
-                        },
-                        new
-                        {
-                            InterestId = 10,
-                            Name = "Фітнес"
-                        },
-                        new
-                        {
-                            InterestId = 11,
-                            Name = "Фотографія"
-                        },
-                        new
-                        {
-                            InterestId = 12,
-                            Name = "Природа"
-                        });
                 });
 
             modelBuilder.Entity("Bokado.Server.Models.Message", b =>
@@ -603,58 +420,37 @@ namespace Bokado.Server.Migrations
                     b.ToTable("messages");
                 });
 
-            modelBuilder.Entity("Bokado.Server.Models.Post", b =>
+            modelBuilder.Entity("Bokado.Server.Models.Swipe", b =>
                 {
-                    b.Property<int>("PostId")
+                    b.Property<int>("SwipeId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("PostId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("SwipeId"));
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ImageUrl")
+                    b.Property<string>("Action")
+                        .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Text")
-                        .HasColumnType("text");
+                    b.Property<bool>("IsMatch")
+                        .HasColumnType("boolean");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("PostId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("posts");
-                });
-
-            modelBuilder.Entity("Bokado.Server.Models.PostLike", b =>
-                {
-                    b.Property<int>("PostLikeId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("PostLikeId"));
-
-                    b.Property<DateTime>("LikedAt")
+                    b.Property<DateTime>("SwipedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("PostId")
+                    b.Property<int>("SwiperId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("UserId")
+                    b.Property<int>("TargetUserId")
                         .HasColumnType("integer");
 
-                    b.HasKey("PostLikeId");
+                    b.HasKey("SwipeId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("SwiperId");
 
-                    b.HasIndex("PostId", "UserId")
-                        .IsUnique();
+                    b.HasIndex("TargetUserId");
 
-                    b.ToTable("post_likes");
+                    b.ToTable("swipes");
                 });
 
             modelBuilder.Entity("Bokado.Server.Models.User", b =>
@@ -719,7 +515,7 @@ namespace Bokado.Server.Migrations
                         new
                         {
                             UserId = 1,
-                            BirthDate = new DateTime(1990, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            BirthDate = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "admin@example.com",
                             IsAdmin = true,
@@ -833,25 +629,6 @@ namespace Bokado.Server.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Bokado.Server.Models.FriendRequest", b =>
-                {
-                    b.HasOne("Bokado.Server.Models.User", "FromUser")
-                        .WithMany("SentFriendRequests")
-                        .HasForeignKey("FromUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Bokado.Server.Models.User", "ToUser")
-                        .WithMany("ReceivedFriendRequests")
-                        .HasForeignKey("ToUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("FromUser");
-
-                    b.Navigation("ToUser");
-                });
-
             modelBuilder.Entity("Bokado.Server.Models.Friendship", b =>
                 {
                     b.HasOne("Bokado.Server.Models.User", "Friend")
@@ -947,34 +724,23 @@ namespace Bokado.Server.Migrations
                     b.Navigation("Sender");
                 });
 
-            modelBuilder.Entity("Bokado.Server.Models.Post", b =>
+            modelBuilder.Entity("Bokado.Server.Models.Swipe", b =>
                 {
-                    b.HasOne("Bokado.Server.Models.User", "Author")
+                    b.HasOne("Bokado.Server.Models.User", "Swiper")
+                        .WithMany("Swipes")
+                        .HasForeignKey("SwiperId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Bokado.Server.Models.User", "TargetUser")
                         .WithMany()
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("TargetUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Author");
-                });
+                    b.Navigation("Swiper");
 
-            modelBuilder.Entity("Bokado.Server.Models.PostLike", b =>
-                {
-                    b.HasOne("Bokado.Server.Models.Post", "Post")
-                        .WithMany("Likes")
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Bokado.Server.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Post");
-
-                    b.Navigation("User");
+                    b.Navigation("TargetUser");
                 });
 
             modelBuilder.Entity("Bokado.Server.Models.UserChallenge", b =>
@@ -1044,11 +810,6 @@ namespace Bokado.Server.Migrations
                     b.Navigation("UserInterests");
                 });
 
-            modelBuilder.Entity("Bokado.Server.Models.Post", b =>
-                {
-                    b.Navigation("Likes");
-                });
-
             modelBuilder.Entity("Bokado.Server.Models.User", b =>
                 {
                     b.Navigation("ChatParticipants");
@@ -1061,9 +822,7 @@ namespace Bokado.Server.Migrations
 
                     b.Navigation("Messages");
 
-                    b.Navigation("ReceivedFriendRequests");
-
-                    b.Navigation("SentFriendRequests");
+                    b.Navigation("Swipes");
 
                     b.Navigation("UserChallenges");
 

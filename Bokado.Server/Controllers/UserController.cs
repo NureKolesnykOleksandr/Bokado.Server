@@ -102,6 +102,21 @@ namespace Bokado.Server.Controllers
         }
 
         [Authorize]
+        [HttpGet("{userId}/status")]
+        public async Task<IActionResult> GetOnlineStatus(int userId)
+        {
+            try
+            {
+                var status = await _userRepository.GetOnlineStatus(userId);
+                return Ok(status);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+
+        [Authorize]
         [HttpPut("{userId}")]
         public async Task<IActionResult> UpdateProfile(int userId, [FromForm] UpdateUserDto user)
         {

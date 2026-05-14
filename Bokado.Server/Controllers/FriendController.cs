@@ -1,14 +1,8 @@
-﻿using Bokado.Server.Dtos;
 using Bokado.Server.Interfaces;
-using Bokado.Server.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using System;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace Bokado.Server.Controllers
 {
@@ -24,128 +18,79 @@ namespace Bokado.Server.Controllers
             _friendsRepository = friendsRepository;
         }
 
-        [HttpPost("swipe/{targetUserId}")]
-        public async Task<IActionResult> SwipeUser(int targetUserId, string action)
+        [HttpPost("request/{targetUserId}")]
+        public async Task<IActionResult> SendFriendRequest(int targetUserId)
         {
-            var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-            int currentUserId = GetUserIdFromToken(token);
-
             try
             {
-                var result = await _friendsRepository.SwipeUser(currentUserId, targetUserId, action.ToLower());
-
-                if (!result.Succeeded)
-                {
-                    return BadRequest(result.Errors);
-                }
-
-                return Ok();
+                var result = await _friendsRepository.SendFriendRequest(GetUserId(), targetUserId);
+                return result.Succeeded ? Ok() : BadRequest(result.Errors);
             }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
-        [HttpPost("accept/{swipeId}")]
-        public async Task<IActionResult> AcceptFriendRequest(int swipeId)
+        [HttpGet("requests/incoming")]
+        public async Task<IActionResult> GetIncomingRequests()
         {
-            try
-            {
-                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                int currentUserId = GetUserIdFromToken(token);
-                var result = await _friendsRepository.AcceptFriendRequest(currentUserId, swipeId);
-
-                if (!result.Succeeded)
-                {
-                    return BadRequest(result.Errors);
-                }
-
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var requests = await _friendsRepository.GetIncomingRequests(GetUserId());
+            return Ok(requests);
         }
 
-        [HttpGet("who-liked-me")]
-        public async Task<IActionResult> GetUsersWhoLikedMe()
+        [HttpGet("requests/outgoing")]
+        public async Task<IActionResult> GetOutgoingRequests()
         {
-            try
-            {
-                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                int currentUserId = GetUserIdFromToken(token);
-                var users = await _friendsRepository.GetUsersWhoLikedMe(currentUserId);
-                return Ok(users);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var requests = await _friendsRepository.GetOutgoingRequests(GetUserId());
+            return Ok(requests);
         }
 
-
-        [HttpGet("swipe")]
-        public async Task<IActionResult> GetMySwipes()
+        [HttpPost("request/accept/{requesterId}")]
+        public async Task<IActionResult> AcceptFriendRequest(int requesterId)
         {
             try
             {
-                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                int currentUserId = GetUserIdFromToken(token);
-                var swipes = await _friendsRepository.GetMySwipes(currentUserId);
-                return Ok(swipes);
+                var result = await _friendsRepository.AcceptFriendRequest(GetUserId(), requesterId);
+                return result.Succeeded ? Ok() : BadRequest(result.Errors);
             }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
-        [HttpGet("top-users")]
-        public async Task<IActionResult> GetTopUsers()
+        [HttpDelete("request/decline/{requesterId}")]
+        public async Task<IActionResult> DeclineFriendRequest(int requesterId)
         {
             try
             {
-                var users = await _friendsRepository.GetTopUsers();
-                return Ok(users);
+                var result = await _friendsRepository.DeclineFriendRequest(GetUserId(), requesterId);
+                return result.Succeeded ? Ok() : BadRequest(result.Errors);
             }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        [HttpGet("search/username")]
+        public async Task<IActionResult> SearchByUsername([FromQuery] string query)
+        {
+            var users = await _friendsRepository.SearchUsersByUsername(GetUserId(), query);
+            return Ok(users);
         }
 
         [HttpGet("search")]
         public async Task<IActionResult> SearchUsers()
         {
-            try
-            {
-                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                int currentUserId = GetUserIdFromToken(token);
-                var users = await _friendsRepository.SearchUsers(currentUserId);
-                return Ok(users);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var users = await _friendsRepository.SearchUsers(GetUserId());
+            return Ok(users);
+        }
+
+        [HttpGet("top-users")]
+        public async Task<IActionResult> GetTopUsers()
+        {
+            var users = await _friendsRepository.GetTopUsers();
+            return Ok(users);
         }
 
         [HttpGet("my-friends")]
         public async Task<IActionResult> GetFriends()
         {
-            try
-            {
-                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                int currentUserId = GetUserIdFromToken(token);
-                var friends = await _friendsRepository.GetFriends(currentUserId);
-                return Ok(friends);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var friends = await _friendsRepository.GetFriends(GetUserId());
+            return Ok(friends);
         }
 
         [HttpDelete("remove/{friendId}")]
@@ -153,66 +98,27 @@ namespace Bokado.Server.Controllers
         {
             try
             {
-                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                int currentUserId = GetUserIdFromToken(token);
-                var result = await _friendsRepository.RemoveFriend(currentUserId, friendId);
-
-                if (!result.Succeeded)
-                {
-                    return BadRequest(result.Errors);
-                }
-
-                return Ok();
+                var result = await _friendsRepository.RemoveFriend(GetUserId(), friendId);
+                return result.Succeeded ? Ok() : BadRequest(result.Errors);
             }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
-        [HttpDelete("remove/swipe/{swipeId}")]
-        public async Task<IActionResult> RemoveSwipe(int swipeId)
+        [HttpGet("status/{targetUserId}")]
+        public async Task<IActionResult> GetFriendStatus(int targetUserId)
         {
-            try
-            {
-                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                int currentUserId = GetUserIdFromToken(token);
-                var result = await _friendsRepository.RemoveSwipe(currentUserId, swipeId);
-
-                if (!result.Succeeded)
-                {
-                    return BadRequest(result.Errors);
-                }
-
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var status = await _friendsRepository.GetFriendStatus(GetUserId(), targetUserId);
+            return Ok(status);
         }
 
-        private int GetUserIdFromToken(string token)
+        private int GetUserId()
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-
-            try
-            {
-                var jwtToken = tokenHandler.ReadJwtToken(token);
-
-                var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
-                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
-                {
-                    throw new SecurityTokenException("User ID not found in token or invalid format");
-                }
-
-
-                return userId;
-            }
-            catch (Exception ex)
-            {
-                throw new SecurityTokenException("Invalid token format", ex);
-            }
+            var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+            var jwtToken = new JwtSecurityTokenHandler().ReadJwtToken(token);
+            var claim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
+            if (claim == null || !int.TryParse(claim.Value, out int userId))
+                throw new SecurityTokenException("User ID not found in token");
+            return userId;
         }
     }
 }

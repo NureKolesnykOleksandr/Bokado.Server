@@ -15,6 +15,21 @@ namespace Bokado.Server.Repositories
             _context = context;
         }
 
+        public async Task<object> GetOverview()
+        {
+            return new
+            {
+                TotalUsers    = await _context.Users.CountAsync(u => !u.IsAdmin),
+                PremiumUsers  = await _context.Users.CountAsync(u => u.IsPremium && !u.IsAdmin),
+                BannedUsers   = await _context.Users.CountAsync(u => u.IsBanned),
+                TotalGroups   = await _context.Groups.CountAsync(),
+                TotalEvents   = await _context.Events.CountAsync(),
+                TotalPosts    = await _context.Posts.CountAsync(),
+                ActiveChats   = await _context.Chats.CountAsync(c =>
+                    c.Messages.Any(m => DateTime.UtcNow - m.SentAt < TimeSpan.FromDays(7)))
+            };
+        }
+
         public async Task<Dictionary<string, int>> GetChallengesCompleted()
         {
             var activeChallenges = await _context.Challenges.Where(c => c.IsActive).ToListAsync();

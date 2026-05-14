@@ -3,6 +3,7 @@ using System;
 using Bokado.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Bokado.Server.Migrations
 {
     [DbContext(typeof(SocialNetworkContext))]
-    partial class SocialNetworkContextModelSnapshot : ModelSnapshot
+    [Migration("20260514153316_Database-update")]
+    partial class Databaseupdate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -141,96 +144,6 @@ namespace Bokado.Server.Migrations
                             IsActive = false,
                             Reward = 1,
                             Title = "Профільний експерт"
-                        },
-                        new
-                        {
-                            ChallengeId = 11,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Опублікуй свій перший пост",
-                            IsActive = false,
-                            Reward = 1,
-                            Title = "Перший пост"
-                        },
-                        new
-                        {
-                            ChallengeId = 12,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Отримай 5 лайків на один пост",
-                            IsActive = false,
-                            Reward = 2,
-                            Title = "Популярний контент"
-                        },
-                        new
-                        {
-                            ChallengeId = 13,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Вступи в свою першу групу",
-                            IsActive = false,
-                            Reward = 1,
-                            Title = "Груповий учасник"
-                        },
-                        new
-                        {
-                            ChallengeId = 14,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Створи власну групу",
-                            IsActive = false,
-                            Reward = 3,
-                            Title = "Лідер спільноти"
-                        },
-                        new
-                        {
-                            ChallengeId = 15,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Надішли фото у повідомленні",
-                            IsActive = false,
-                            Reward = 1,
-                            Title = "Фотограф"
-                        },
-                        new
-                        {
-                            ChallengeId = 16,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Запусти відеодзвінок у групі",
-                            IsActive = false,
-                            Reward = 2,
-                            Title = "Відеоорганізатор"
-                        },
-                        new
-                        {
-                            ChallengeId = 17,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Отримай 3 запити на дружбу",
-                            IsActive = false,
-                            Reward = 2,
-                            Title = "Магніт"
-                        },
-                        new
-                        {
-                            ChallengeId = 18,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Набери 10 друзів",
-                            IsActive = false,
-                            Reward = 3,
-                            Title = "Відданий друг"
-                        },
-                        new
-                        {
-                            ChallengeId = 19,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Постав 10 лайків на пости інших",
-                            IsActive = false,
-                            Reward = 1,
-                            Title = "Активний лайкер"
-                        },
-                        new
-                        {
-                            ChallengeId = 20,
-                            CreatedAt = new DateTime(2025, 5, 21, 20, 30, 0, 0, DateTimeKind.Utc),
-                            Description = "Вступи в 3 різні групи",
-                            IsActive = false,
-                            Reward = 3,
-                            Title = "Командний гравець"
                         });
                 });
 
@@ -405,10 +318,6 @@ namespace Bokado.Server.Migrations
                     b.Property<int>("ChatId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -471,9 +380,6 @@ namespace Bokado.Server.Migrations
 
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("integer");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");

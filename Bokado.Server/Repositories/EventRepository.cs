@@ -55,18 +55,15 @@ namespace Bokado.Server.Repositories
 
         public async Task<List<GetEventDto>> GetEvents()
         {
-            // Get all events
             var events = await _context.Events
                 .Include(e => e.Creator)
                 .ToListAsync();
 
-            // Get all participants for these events
             var eventParticipants = await _context.EventParticipants
                 .Where(ep => events.Select(e => e.EventId).Contains(ep.EventId))
                 .Include(ep => ep.User)
                 .ToListAsync();
 
-            // Create a lookup for participants by event ID
             var participantsByEventId = eventParticipants
                 .GroupBy(ep => ep.EventId)
                 .ToDictionary(
