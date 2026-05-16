@@ -1,10 +1,8 @@
-﻿using Bokado.Server.Dtos;
+using Bokado.Server.Dtos;
 using Bokado.Server.Interfaces;
-using Bokado.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 
 namespace Bokado.Server.Controllers
@@ -14,9 +12,9 @@ namespace Bokado.Server.Controllers
     [ApiController]
     public class ChatController : Controller
     {
-        IChatRepository _chatRepository;
+        private readonly IChatRepository _chatRepository;
 
-        public ChatController(IChatRepository chatRepository) 
+        public ChatController(IChatRepository chatRepository)
         {
             _chatRepository = chatRepository;
         }
@@ -26,8 +24,7 @@ namespace Bokado.Server.Controllers
         {
             try
             {
-                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                int currentUserId = GetUserIdFromToken(token);
+                int currentUserId = GetUserIdFromToken();
                 var chats = await _chatRepository.GetChats(currentUserId);
                 return Ok(chats);
             }
@@ -56,10 +53,8 @@ namespace Bokado.Server.Controllers
         {
             try
             {
-                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                int currentUserId = GetUserIdFromToken(token);
+                int currentUserId = GetUserIdFromToken();
                 var result = await _chatRepository.CreateChat(currentUserId, withUserId);
-
                 return Ok(result);
             }
             catch (Exception ex)
@@ -73,20 +68,10 @@ namespace Bokado.Server.Controllers
         {
             try
             {
-                if(message.Text == null){
-                    message.Text = "";
-                }
-
-                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                int currentUserId = GetUserIdFromToken(token);
+                if (message.Text == null) message.Text = "";
+                int currentUserId = GetUserIdFromToken();
                 var result = await _chatRepository.SendMessage(currentUserId, message);
-
-                if (result.Succeeded)
-                {
-                    return Ok(new { Message = "Message sent successfully" });
-                }
-
-                return BadRequest(result.Errors);
+                return result.Succeeded ? Ok(new { Message = "Message sent successfully" }) : BadRequest(result.Errors);
             }
             catch (Exception ex)
             {
@@ -94,22 +79,29 @@ namespace Bokado.Server.Controllers
             }
         }
 
+        [HttpPut("{chatId}/read")]
+        public async Task<IActionResult> MarkChatAsRead(int chatId)
+        {
+            try
+            {
+                int currentUserId = GetUserIdFromToken();
+                await _chatRepository.MarkChatAsRead(chatId, currentUserId);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
 
         [HttpDelete("message/{messageId}")]
         public async Task<IActionResult> DeleteMessage(int messageId)
         {
             try
             {
-                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                int currentUserId = GetUserIdFromToken(token);
+                int currentUserId = GetUserIdFromToken();
                 var result = await _chatRepository.DeleteMessage(currentUserId, messageId);
-
-                if (result.Succeeded)
-                {
-                    return Ok(new { Message = "Message deleted successfully" });
-                }
-
-                return BadRequest(result.Errors);
+                return result.Succeeded ? Ok(new { Message = "Message deleted successfully" }) : BadRequest(result.Errors);
             }
             catch (Exception ex)
             {
@@ -122,16 +114,9 @@ namespace Bokado.Server.Controllers
         {
             try
             {
-                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                int currentUserId = GetUserIdFromToken(token);
+                int currentUserId = GetUserIdFromToken();
                 var result = await _chatRepository.DeleteChat(currentUserId, chatId);
-
-                if (result.Succeeded)
-                {
-                    return Ok(new { Message = "Chat deleted successfully" });
-                }
-
-                return BadRequest(result.Errors);
+                return result.Succeeded ? Ok(new { Message = "Chat deleted successfully" }) : BadRequest(result.Errors);
             }
             catch (Exception ex)
             {
@@ -139,29 +124,15 @@ namespace Bokado.Server.Controllers
             }
         }
 
-
-
-        private int GetUserIdFromToken(string token)
+        private int GetUserIdFromToken()
         {
+            var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
             var tokenHandler = new JwtSecurityTokenHandler();
-
-            try
-            {
-                var jwtToken = tokenHandler.ReadJwtToken(token);
-
-                var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
-                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
-                {
-                    throw new SecurityTokenException("User ID not found in token or invalid format");
-                }
-
-
-                return userId;
-            }
-            catch (Exception ex)
-            {
-                throw new SecurityTokenException("Invalid token format", ex);
-            }
+            var jwtToken = tokenHandler.ReadJwtToken(token);
+            var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                throw new SecurityTokenException("User ID not found in token");
+            return userId;
         }
     }
 }

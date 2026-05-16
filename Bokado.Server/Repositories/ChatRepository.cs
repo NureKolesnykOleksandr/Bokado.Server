@@ -1,13 +1,10 @@
-﻿using Bokado.Server.Data;
+using Bokado.Server.Data;
 using Bokado.Server.Dtos;
 using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
 using Bokado.Server.Services;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Crypto.Prng;
-using System.Runtime.Intrinsics.X86;
 
 namespace Bokado.Server.Repositories
 {
@@ -22,76 +19,196 @@ namespace Bokado.Server.Repositories
             _fileService = fileService;
         }
 
-        public async Task<ChatDto> CreateChat(int fromId, int toId)
+        public async Task<List<ChatDto>> GetChats(int userId)
         {
-            var user1 = await _context.Users.Where(u => u.UserId == fromId).FirstOrDefaultAsync();
-            var user2 = await _context.Users.Where(u => u.UserId == toId).FirstOrDefaultAsync();
+            var result = new List<ChatDto>();
 
-            if (user1 == null || user2 == null)
+            var personalChats = await _context.ChatParticipants
+                .Where(cp => cp.UserId == userId)
+                .Where(cp => !_context.Groups.Any(g => g.ChatId == cp.ChatId))
+                .Include(cp => cp.Chat)
+                    .ThenInclude(c => c.Participants)
+                        .ThenInclude(p => p.User)
+                .Include(cp => cp.Chat)
+                    .ThenInclude(c => c.Messages)
+                .ToListAsync();
+
+            foreach (var cp in personalChats)
             {
-                throw new KeyNotFoundException("One user was not found");
+                var chat = cp.Chat;
+                var secondMemberParticipant = chat.Participants.FirstOrDefault(p => p.UserId != userId);
+                if (secondMemberParticipant == null) continue;
+
+                var secondUser = secondMemberParticipant.User;
+                var lastMsg = chat.Messages.OrderByDescending(m => m.SentAt).FirstOrDefault();
+                var unread = chat.Messages.Count(m => !m.IsRead && m.SenderId != userId);
+
+                result.Add(new ChatDto
+                {
+                    ChatId = chat.ChatId,
+                    CreatedAt = chat.CreatedAt,
+                    IsGroup = false,
+                    SecondMember = new ChatMemberDto
+                    {
+                        UserId = secondUser.UserId,
+                        Username = secondUser.Username,
+                        Email = secondUser.Email,
+                        IsAdmin = secondUser.IsAdmin,
+                        AvatarUrl = secondUser.AvatarUrl
+                    },
+                    LastMessage = lastMsg == null ? null : new LastMessageDto
+                    {
+                        MessageId = lastMsg.MessageId,
+                        Text = lastMsg.Text ?? "",
+                        Attachment = lastMsg.Attachment,
+                        SentAt = lastMsg.SentAt,
+                        SenderId = lastMsg.SenderId,
+                        IsRead = lastMsg.IsRead
+                    },
+                    UnreadCount = unread
+                });
             }
 
-            var existingChat = await _context.ChatParticipants
-                .Where(cp1 => cp1.UserId == user1.UserId)
-                .Join(_context.ChatParticipants.Where(cp2 => cp2.UserId == user2.UserId),
-                    cp1 => cp1.ChatId,
-                    cp2 => cp2.ChatId,
-                    (cp1, cp2) => new ChatDto
+            var groupMemberships = await _context.GroupMembers
+                .Where(gm => gm.UserId == userId)
+                .Include(gm => gm.Group)
+                    .ThenInclude(g => g.Chat)
+                        .ThenInclude(c => c.Messages)
+                .ToListAsync();
+
+            foreach (var gm in groupMemberships)
+            {
+                var group = gm.Group;
+                if (group?.Chat == null) continue;
+
+                var chat = group.Chat;
+                var lastMsg = chat.Messages.OrderByDescending(m => m.SentAt).FirstOrDefault();
+                var unread = chat.Messages.Count(m => !m.IsRead && m.SenderId != userId);
+
+                result.Add(new ChatDto
+                {
+                    ChatId = chat.ChatId,
+                    CreatedAt = chat.CreatedAt,
+                    IsGroup = true,
+                    GroupId = group.GroupId,
+                    GroupName = group.Name,
+                    LastMessage = lastMsg == null ? null : new LastMessageDto
                     {
-                        ChatId = cp1.Chat.ChatId,
-                        CreatedAt = cp1.Chat.CreatedAt,
-                        SecondMember = new UserDto
-                        {
-                            UserId = user2.UserId,
-                            Username = user2.Username,
-                            Email = user2.Email,
-                            IsAdmin = user2.IsAdmin
-                        }
-                    })
+                        MessageId = lastMsg.MessageId,
+                        Text = lastMsg.Text ?? "",
+                        Attachment = lastMsg.Attachment,
+                        SentAt = lastMsg.SentAt,
+                        SenderId = lastMsg.SenderId,
+                        IsRead = lastMsg.IsRead
+                    },
+                    UnreadCount = unread
+                });
+            }
+
+            return result.OrderByDescending(c => c.LastMessage?.SentAt ?? c.CreatedAt).ToList();
+        }
+
+        public async Task MarkChatAsRead(int chatId, int userId)
+        {
+            var unreadMessages = await _context.Messages
+                .Where(m => m.ChatId == chatId && m.SenderId != userId && !m.IsRead)
+                .ToListAsync();
+
+            foreach (var msg in unreadMessages)
+                msg.IsRead = true;
+
+            if (unreadMessages.Any())
+                await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<Message>> GetMessages(int chatId)
+        {
+            return await _context.Messages
+                .Where(m => m.ChatId == chatId)
+                .Include(m => m.Sender)
+                .OrderBy(m => m.SentAt)
+                .ToListAsync();
+        }
+
+        public async Task<ChatDto> CreateChat(int fromId, int toId)
+        {
+            var user1 = await _context.Users.FirstOrDefaultAsync(u => u.UserId == fromId);
+            var user2 = await _context.Users.FirstOrDefaultAsync(u => u.UserId == toId);
+
+            if (user1 == null || user2 == null)
+                throw new KeyNotFoundException("One user was not found");
+
+            var existingChatId = await _context.ChatParticipants
+                .Where(cp1 => cp1.UserId == fromId)
+                .Join(_context.ChatParticipants.Where(cp2 => cp2.UserId == toId),
+                    cp1 => cp1.ChatId, cp2 => cp2.ChatId, (cp1, cp2) => (int?)cp1.ChatId)
+                .Where(cid => !_context.Groups.Any(g => g.ChatId == cid))
                 .FirstOrDefaultAsync();
 
-            if (existingChat != null)
-                return existingChat;
+            if (existingChatId != null)
+            {
+                return new ChatDto
+                {
+                    ChatId = existingChatId.Value,
+                    IsGroup = false,
+                    SecondMember = new ChatMemberDto
+                    {
+                        UserId = user2.UserId,
+                        Username = user2.Username,
+                        Email = user2.Email,
+                        IsAdmin = user2.IsAdmin,
+                        AvatarUrl = user2.AvatarUrl
+                    }
+                };
+            }
 
             var newChat = new Chat { CreatedAt = DateTime.UtcNow };
             _context.Chats.Add(newChat);
             await _context.SaveChangesAsync();
 
             _context.ChatParticipants.AddRange(
-                new ChatParticipant { ChatId = newChat.ChatId, UserId = user1.UserId },
-                new ChatParticipant { ChatId = newChat.ChatId, UserId = user2.UserId }
+                new ChatParticipant { ChatId = newChat.ChatId, UserId = fromId },
+                new ChatParticipant { ChatId = newChat.ChatId, UserId = toId }
             );
-
             await _context.SaveChangesAsync();
 
             return new ChatDto
             {
                 ChatId = newChat.ChatId,
                 CreatedAt = newChat.CreatedAt,
-                SecondMember = new UserDto
+                IsGroup = false,
+                SecondMember = new ChatMemberDto
                 {
                     UserId = user2.UserId,
                     Username = user2.Username,
                     Email = user2.Email,
-                    IsAdmin = user2.IsAdmin
+                    IsAdmin = user2.IsAdmin,
+                    AvatarUrl = user2.AvatarUrl
                 }
             };
         }
 
         public async Task<IdentityResult> DeleteChat(int userId, int chatId)
         {
-            var user = await _context.ChatParticipants.Where(cp => cp.UserId == userId && cp.ChatId == chatId).Include(cp=>cp.Chat).FirstOrDefaultAsync();
-            bool isAdmin = await _context.Users.Where(u=>u.UserId == userId).Select(u=>u.IsAdmin).FirstOrDefaultAsync();
-            
-            if(user == null && !isAdmin)
-            {
-                return IdentityResult.Failed(new IdentityError { Description = "You don`t have a permisson to delete this chat"});
-            }
+            bool isAdmin = await _context.Users
+                .Where(u => u.UserId == userId)
+                .Select(u => u.IsAdmin)
+                .FirstOrDefaultAsync();
 
-            _context.Chats.Remove(user.Chat);
+            var participant = await _context.ChatParticipants
+                .Where(cp => cp.UserId == userId && cp.ChatId == chatId)
+                .Include(cp => cp.Chat)
+                .FirstOrDefaultAsync();
+
+            if (participant == null && !isAdmin)
+                return IdentityResult.Failed(new IdentityError { Description = "No permission" });
+
+            var chat = participant?.Chat ?? await _context.Chats.FindAsync(chatId);
+            if (chat == null)
+                return IdentityResult.Failed(new IdentityError { Description = "Chat not found" });
+
+            _context.Chats.Remove(chat);
             await _context.SaveChangesAsync();
-
             return IdentityResult.Success;
         }
 
@@ -117,7 +234,6 @@ namespace Bokado.Server.Repositories
             {
                 var member = await _context.GroupMembers
                     .FirstOrDefaultAsync(m => m.GroupId == group.GroupId && m.UserId == userId);
-
                 if (member != null && (member.Role == GroupMemberRole.Admin || member.Role == GroupMemberRole.Owner))
                 {
                     _context.Messages.Remove(message);
@@ -126,101 +242,47 @@ namespace Bokado.Server.Repositories
                 }
             }
 
-            return IdentityResult.Failed(new IdentityError { Description = "Немає прав для видалення цього повідомлення" });
+            return IdentityResult.Failed(new IdentityError { Description = "Немає прав для видалення" });
         }
 
-        public async Task<List<ChatDto>> GetChats(int userId)
+        public async Task<IdentityResult> SendMessage(int fromId, MessageDto messageDto)
         {
-            return await _context.ChatParticipants
-                .Where(cp => cp.UserId == userId)
-                .Select(cp => new ChatDto
-                {
-                    ChatId = cp.Chat.ChatId,
-                    CreatedAt = cp.Chat.CreatedAt,
-                    SecondMember = cp.Chat.Participants
-                        .Where(p => p.UserId != userId)
-                        .Select(p => new UserDto
-                        {
-                            UserId = p.User.UserId,
-                            Username = p.User.Username,
-                            Email = p.User.Email,
-                            IsAdmin = p.User.IsAdmin
-                        }).First()
-                })
-                .ToListAsync();
-        }
-
-        public async Task<List<Message>> GetMessages(int chatId)
-        {
-            var messages = await _context.Messages.Where(m=>m.ChatId == chatId).Include(m=>m.Sender).OrderBy(m=>m.SentAt).ToListAsync();
-            return messages;
-        }
-
-        public async Task<IdentityResult> SendMessage(int fromId,MessageDto messageDto)
-        {   
-             var sender = await _context.Users
-                .Include(u => u.ChatParticipants)
-                .FirstOrDefaultAsync(u => u.UserId == fromId);
-
+            var sender = await _context.Users.FindAsync(fromId);
             if (sender == null)
                 return IdentityResult.Failed(new IdentityError { Description = "Sender not found" });
 
-            var chat = await _context.Chats.Where(c => c.ChatId == messageDto.ChatId).FirstOrDefaultAsync();
-            if(chat == null)
-            {
+            var chat = await _context.Chats.FirstOrDefaultAsync(c => c.ChatId == messageDto.ChatId);
+            if (chat == null)
                 throw new KeyNotFoundException("Chat was not found");
-            }
 
             string attachmentPath = "";
             if (messageDto.attachedFile != null)
             {
                 string webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Messages");
-                var allowedExtensions = new[] { ".mp3", ".gif", ".png" , ".jpg"};
-                var attachmentFileName = await _fileService.SaveFileAsync(
-                    messageDto.attachedFile,
-                    webRootPath,
-                    allowedExtensions,
+                var allowedExtensions = new[] { ".mp3", ".gif", ".png", ".jpg", ".jpeg", ".webp" };
+                var fileName = await _fileService.SaveFileAsync(
+                    messageDto.attachedFile, webRootPath, allowedExtensions,
                     Path.GetFileNameWithoutExtension(messageDto.attachedFile.FileName));
 
-                if (attachmentFileName == "")
-                {
-                    throw new ArgumentException("File wasn`t saved");
-                }
+                if (fileName == "")
+                    throw new ArgumentException("File wasn't saved");
 
-                attachmentPath = $"/Messages/{attachmentFileName}";
+                attachmentPath = $"/Messages/{fileName}";
             }
 
             var message = new Message
             {
                 ChatId = chat.ChatId,
                 SenderId = sender.UserId,
-                Text = messageDto.Text,
+                Text = messageDto.Text ?? "",
                 SentAt = DateTime.UtcNow,
-                Attachment = attachmentPath
+                Attachment = attachmentPath,
+                IsRead = false
             };
 
             _context.Messages.Add(message);
             await _context.SaveChangesAsync();
-
             return IdentityResult.Success;
         }
-
-        private async Task<string> SaveAttachmentAsync(IFormFile file, string username)
-        {
-            string attachmentsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "messages");
-            Directory.CreateDirectory(attachmentsPath);
-
-            string fileExtension = Path.GetExtension(file.FileName);
-            string fileName = $"{DateTime.UtcNow.Ticks}_{username}{fileExtension}";
-            string filePath = Path.Combine(attachmentsPath, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            return $"/messages/{fileName}";
-        }
-
     }
 }
