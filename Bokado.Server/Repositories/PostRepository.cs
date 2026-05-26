@@ -51,19 +51,15 @@ namespace Bokado.Server.Repositories
 
             if (dto.Image != null)
             {
-                string postsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Posts");
                 var imageExtensions = new[] { ".png", ".jpg", ".jpeg", ".webp" };
-                var fileName = await _fileService.SaveFileAsync(dto.Image, postsPath, imageExtensions,
+                mediaUrl = await _fileService.SaveFileAsync(dto.Image, "bokado/posts", imageExtensions,
                     Path.GetFileNameWithoutExtension(dto.Image.FileName));
-                mediaUrl = $"/Posts/{fileName}";
             }
             else if (dto.Video != null)
             {
-                string messagesPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Messages");
                 var videoExtensions = new[] { ".mp4", ".webm", ".mov", ".avi" };
-                var fileName = await _fileService.SaveFileAsync(dto.Video, messagesPath, videoExtensions,
+                mediaUrl = await _fileService.SaveFileAsync(dto.Video, "bokado/videos", videoExtensions,
                     Path.GetFileNameWithoutExtension(dto.Video.FileName));
-                mediaUrl = $"/Messages/{fileName}";
             }
 
             var post = new Post
