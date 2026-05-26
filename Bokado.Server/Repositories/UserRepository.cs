@@ -1,4 +1,4 @@
-﻿using Bokado.Server.Data;
+using Bokado.Server.Data;
 using Bokado.Server.Dtos;
 using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
@@ -114,20 +114,19 @@ namespace Bokado.Server.Repositories
 
             if (user.UserIcon != null)
             {
-                string webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Icons");
-                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
-                var imageFileName = await _fileService.SaveFileAsync(
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+                var imageUrl = await _fileService.SaveFileAsync(
                     user.UserIcon,
-                    webRootPath,
+                    "bokado/avatars",
                     allowedExtensions,
                     Path.GetFileNameWithoutExtension(user.Username));
 
-                if (imageFileName == null)
+                if (imageUrl == null)
                 {
                     throw new ArgumentException("File wasn't saved");
                 }
 
-                localUser.AvatarUrl = $"/Icons/{imageFileName}";
+                localUser.AvatarUrl = imageUrl;
             }
 
             localUser.Username = user.Username;
