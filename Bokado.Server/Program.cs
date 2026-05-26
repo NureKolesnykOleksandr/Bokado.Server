@@ -13,21 +13,34 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 var rawUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+
 Console.WriteLine($"DATABASE_URL exists: {rawUrl != null}");
-Console.WriteLine($"DATABASE_URL value: {rawUrl?.Substring(0, 30)}...");
+Console.WriteLine($"DATABASE_URL value: {rawUrl}");
 
 string connectionString;
-if (rawUrl != null)
+
+if (!string.IsNullOrEmpty(rawUrl))
 {
     var uri = new Uri(rawUrl);
     var userInfo = uri.UserInfo.Split(':');
- connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Disable";
-Console.WriteLine($"Full connection string: Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')}");
+
+    connectionString =
+        $"Host={uri.Host};" +
+        $"Port={uri.Port};" +
+        $"Database={uri.AbsolutePath.TrimStart('/')};" +
+        $"Username={userInfo[0]};" +
+        $"Password={userInfo[1]};" +
+        $"SSL Mode=Require;" +
+        $"Trust Server Certificate=true";
+
+    Console.WriteLine($"FINAL CONNECTION STRING: {connectionString}");
 }
 else
 {
     connectionString = builder.Configuration.GetConnectionString("PostgreSqlConnection");
+
     Console.WriteLine("Using appsettings connection string");
+    Console.WriteLine($"FINAL CONNECTION STRING: {connectionString}");
 }
 
 builder.Services.AddDbContext<SocialNetworkContext>(options =>
@@ -35,6 +48,7 @@ builder.Services.AddDbContext<SocialNetworkContext>(options =>
 
 builder.Services.AddScoped<EmailService, EmailService>();
 builder.Services.AddSingleton<FileService, FileService>();
+
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IStatisticRepository, StatisticRepository>();
 builder.Services.AddScoped<ISubscribeRepository, SubscribeRepository>();
@@ -60,14 +74,18 @@ builder.Services.AddAuthentication(options =>
 {
     options.RequireHttpsMetadata = false;
     options.SaveToken = true;
+
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
+
         ValidateIssuer = true,
         ValidIssuer = jwtSettings["Issuer"],
+
         ValidateAudience = true,
         ValidAudience = jwtSettings["Audience"],
+
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };
@@ -80,6 +98,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -88,6 +107,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.Http,
         Scheme = "bearer"
     });
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -123,17 +143,32 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+try
 {
-    var db = scope.ServiceProvider.GetRequiredService<SocialNetworkContext>();
-    db.Database.Migrate();
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<SocialNetworkContext>();
+
+        Console.WriteLine("Starting database migration...");
+
+        db.Database.Migrate();
+
+        Console.WriteLine("Database migration completed");
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine("DATABASE MIGRATION ERROR:");
+    Console.WriteLine(ex.ToString());
 }
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseStaticFiles();
+
 app.UseCors("AllowAll");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
