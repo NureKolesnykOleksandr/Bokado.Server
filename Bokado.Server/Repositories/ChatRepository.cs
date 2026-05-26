@@ -258,16 +258,13 @@ namespace Bokado.Server.Repositories
             string attachmentPath = "";
             if (messageDto.attachedFile != null)
             {
-                string webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Messages");
                 var allowedExtensions = new[] { ".mp3", ".gif", ".png", ".jpg", ".jpeg", ".webp" };
-                var fileName = await _fileService.SaveFileAsync(
-                    messageDto.attachedFile, webRootPath, allowedExtensions,
+                attachmentPath = await _fileService.SaveFileAsync(
+                    messageDto.attachedFile, "bokado/messages", allowedExtensions,
                     Path.GetFileNameWithoutExtension(messageDto.attachedFile.FileName));
 
-                if (fileName == "")
+                if (attachmentPath == "")
                     throw new ArgumentException("File wasn't saved");
-
-                attachmentPath = $"/Messages/{fileName}";
             }
 
             var message = new Message
