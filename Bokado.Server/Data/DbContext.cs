@@ -33,10 +33,7 @@ namespace Bokado.Server.Data
 
         public SocialNetworkContext(DbContextOptions<SocialNetworkContext> options): base(options) { }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseNpgsql("Host=localhost;Username=postgres;Password=12345;Database=BokadoDB;Port=5432");
-        }
+        
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
