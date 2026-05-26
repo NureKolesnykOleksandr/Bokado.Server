@@ -129,11 +129,13 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll", policy =>
     {
         policy.WithOrigins(
-                "http://localhost:5173",
-                "https://localhost:5173",
-                "https://bokado.website",
-                "https://www.bokado.website"
-              )
+            "http://localhost:5173",
+            "https://localhost:5173",
+            "https://bokado.website",
+            "https://www.bokado.website",
+            "http://bokado.website",
+            "http://www.bokado.website"
+)
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials()
