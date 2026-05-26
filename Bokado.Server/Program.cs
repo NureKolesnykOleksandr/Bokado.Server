@@ -12,8 +12,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
+    ?? builder.Configuration.GetConnectionString("PostgreSqlConnection");
+
 builder.Services.AddDbContext<SocialNetworkContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSqlConnection")));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddScoped<EmailService, EmailService>();
 builder.Services.AddSingleton<FileService, FileService>();
