@@ -3,7 +3,6 @@ using Bokado.Server.Interfaces;
 using Bokado.Server.Repositories;
 using Bokado.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -89,9 +88,14 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("DevelopmentPolicy", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(
+                "http://localhost:5173",
+                "https://localhost:5173",
+                "https://bokado.website",
+                "https://www.bokado.website"
+              )
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials()
@@ -101,15 +105,17 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+using (var scope = app.Services.CreateScope())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    var db = scope.ServiceProvider.GetRequiredService<SocialNetworkContext>();
+    db.Database.Migrate();
 }
 
-app.UseStaticFiles();   
-app.UseHttpsRedirection();
-app.UseCors("DevelopmentPolicy");
+app.UseSwagger();
+app.UseSwaggerUI();
+
+app.UseStaticFiles();
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
