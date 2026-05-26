@@ -21,8 +21,8 @@ if (rawUrl != null)
 {
     var uri = new Uri(rawUrl);
     var userInfo = uri.UserInfo.Split(':');
-   connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Disable";
-    Console.WriteLine($"Using connection: Host={uri.Host}");
+ connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Disable";
+Console.WriteLine($"Full connection string: Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')}");
 }
 else
 {
