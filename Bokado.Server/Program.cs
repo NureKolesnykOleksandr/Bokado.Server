@@ -13,17 +13,21 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 var rawUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-string connectionString;
+Console.WriteLine($"DATABASE_URL exists: {rawUrl != null}");
+Console.WriteLine($"DATABASE_URL value: {rawUrl?.Substring(0, 30)}...");
 
+string connectionString;
 if (rawUrl != null)
 {
     var uri = new Uri(rawUrl);
     var userInfo = uri.UserInfo.Split(':');
     connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+    Console.WriteLine($"Using connection: Host={uri.Host}");
 }
 else
 {
     connectionString = builder.Configuration.GetConnectionString("PostgreSqlConnection");
+    Console.WriteLine("Using appsettings connection string");
 }
 
 builder.Services.AddDbContext<SocialNetworkContext>(options =>
