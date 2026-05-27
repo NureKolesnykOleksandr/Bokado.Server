@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using Bokado.Server.Data;
 using Bokado.Server.Services;
 using System.Xml.Linq;
+using Google.Apis.Auth;
 
 namespace Bokado.Server.Repositories
 {
@@ -78,8 +79,58 @@ namespace Bokado.Server.Repositories
                 User = new UserDto() { Email = user.Email, IsAdmin = user.IsAdmin, UserId = user.UserId, Username = user.Username }
             };
         }
-
-        public async Task<IdentityResult> ResetPassword(string email)
+        public async Task<AuthResultDTO> LoginWithGoogle(GoogleLoginDTO dto)
+        {
+            var settings = new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = new[] { _config["Google:ClientId"] }
+            };
+        
+            GoogleJsonWebSignature.Payload payload;
+            try
+            {
+                payload = await GoogleJsonWebSignature.ValidateAsync(dto.IdToken, settings);
+            }
+            catch
+            {
+                throw new UnauthorizedAccessException("Невірний Google токен");
+            }
+        
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == payload.Email);
+        
+            if (user == null)
+            {
+                user = new User
+                {
+                    Username = payload.Name.Replace(" ", "_"),
+                    Email = payload.Email,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
+                    BirthDate = DateTime.UtcNow,
+                    AvatarUrl = payload.Picture
+                };
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+            }
+        
+            if (user.IsBanned && !user.IsAdmin)
+                throw new UnauthorizedAccessException("U SHALL NOT PASS!(u are banned, sorry 😢)");
+        
+            user.LastActive = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        
+            return new AuthResultDTO
+            {
+                Token = GenerateJwtToken(user),
+                User = new UserDto
+                {
+                    Email = user.Email,
+                    IsAdmin = user.IsAdmin,
+                    UserId = user.UserId,
+                    Username = user.Username
+                }
+            };
+        }
+                public async Task<IdentityResult> ResetPassword(string email)
         {
             User? user = await _context.Users.Where(u => u.Email == email).FirstOrDefaultAsync();
 
