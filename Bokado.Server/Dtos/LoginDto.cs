@@ -8,9 +8,7 @@
 
     public class GoogleLoginDTO
     {
-        public string GoogleId { get; set; }
-        public string Email { get; set; }
-        public string Name { get; set; }
+    public string IdToken { get; set; }
     }
 
     public class RegisterDTO : LoginDTO
