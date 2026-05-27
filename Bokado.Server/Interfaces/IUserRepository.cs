@@ -10,5 +10,6 @@ namespace Bokado.Server.Interfaces
         Task UpdateUserProfile(int userId, UpdateUserDto user);
         Task<int> GetUserCount();
         Task<UserOnlineStatusDto> GetOnlineStatus(int userId);
+        Task<IEnumerable<UserInfoDto>> GetUsersWithCity();
     }
 }
