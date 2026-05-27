@@ -48,7 +48,23 @@ namespace Bokado.Server.Controllers
                 return Unauthorized(ex.Message);
             }
         }
-
+        [HttpPost("login-with-google")]
+public async Task<IActionResult> LoginWithGoogle([FromBody] GoogleLoginDTO dto)
+{
+    try
+    {
+        var result = await _authRepository.LoginWithGoogle(dto);
+        return Ok(result);
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+        return Unauthorized(ex.Message);
+    }
+    catch (Exception ex)
+    {
+        return BadRequest(ex.Message);
+    }
+}
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] string email)
         {
