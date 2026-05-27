@@ -86,6 +86,26 @@ namespace Bokado.Server.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [Authorize]
+        [HttpPut("update-location")]
+        public async Task<IActionResult> UpdateLocation([FromBody] UpdateLocationDto dto)
+        {
+            try
+            {
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                var tuple = GetUserIdAndRoleFromToken(token);
+                await _userRepository.UpdateLocation(tuple.userId, dto.Latitude, dto.Longitude);
+                return Ok();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
         private (int userId, string role) GetUserIdAndRoleFromToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
