@@ -1,8 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 using Bokado.Server.Models;
 using System.Text.Json.Serialization;
-
 namespace Bokado.Server.Dtos
 {
     public class UserDto
@@ -10,22 +9,17 @@ namespace Bokado.Server.Dtos
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int UserId { get; set; }
-
         [Required]
         public string Username { get; set; }
-
         [Required]
         public string Email { get; set; }
-
         public bool IsAdmin { get; set; } = false;
     }
-
     public class UserInfoDto
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int UserId { get; set; }
-
         [Required]
         [StringLength(20, MinimumLength = 3)]
         public string Username { get; set; }
@@ -35,13 +29,14 @@ namespace Bokado.Server.Dtos
         public string? Status { get; set; }
         public int Level { get; set; } = 1;
         public string? City { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
         public bool IsPremium { get; set; } = false;
         public bool IsBanned { get; set; } = false;
         public bool IsAdmin { get; set; } = false;
         public DateTime CreatedAt { get; set; }
         public DateTime LastActive { get; set; }
     }
-
     public class UpdateUserDto 
     {
         public IFormFile? UserIcon { get; set; }
@@ -53,19 +48,21 @@ namespace Bokado.Server.Dtos
         public string? City { get; set; }
         public ICollection<string>? UserInterests { get; set; }
     }
-
+    public class UpdateLocationDto
+    {
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+    }
     public class WarnUserDto
     {
         public string Reason { get; set; }
     }
-
     public class UserOnlineStatusDto
     {
         public int UserId { get; set; }
         public bool IsOnline { get; set; }
         public DateTime LastActive { get; set; }
     }
-
     public class UserDetailInfoDto
     {
         [Key]
@@ -78,6 +75,8 @@ namespace Bokado.Server.Dtos
         public string? Status { get; set; }
         public int Level { get; set; } = 1;
         public string? City { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
         public bool IsPremium { get; set; } = false;
         public bool IsBanned { get; set; } = false;
         public bool IsAdmin { get; set; } = false;
