@@ -189,7 +189,7 @@ namespace Bokado.Server.Repositories
             return result;
         }
 
-        public async Task<UserOnlineStatusDto> GetOnlineStatus(int userId)
+       public async Task<UserOnlineStatusDto> GetOnlineStatus(int userId)
         {
             var user = await _context.Users
                 .Where(u => u.UserId == userId)
@@ -203,6 +203,22 @@ namespace Bokado.Server.Repositories
                 IsOnline = DateTime.UtcNow - user.LastActive < TimeSpan.FromMinutes(5),
                 LastActive = user.LastActive
             };
+        }
+
+        public async Task<IEnumerable<UserInfoDto>> GetUsersWithCity()
+        {
+            return await _context.Users
+                .Where(u => u.City != null && u.City != "")
+                .Select(u => new UserInfoDto
+                {
+                    UserId = u.UserId,
+                    Username = u.Username,
+                    AvatarUrl = u.AvatarUrl,
+                    City = u.City,
+                    Level = u.Level,
+                    IsPremium = u.IsPremium
+                })
+                .ToListAsync();
         }
     }
 }
