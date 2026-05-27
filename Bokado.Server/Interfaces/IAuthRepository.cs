@@ -8,5 +8,6 @@ namespace Bokado.Server.Interfaces
         Task<AuthResultDTO> Register(RegisterDTO dto);
         Task<AuthResultDTO> Login(LoginDTO dto);
         Task<IdentityResult> ResetPassword(string email);
+        Task<AuthResultDTO> LoginWithGoogle(GoogleLoginDTO dto);
     }
 }
