@@ -11,5 +11,6 @@ namespace Bokado.Server.Interfaces
         Task<int> GetUserCount();
         Task<UserOnlineStatusDto> GetOnlineStatus(int userId);
         Task<IEnumerable<UserInfoDto>> GetUsersWithCity();
+        Task UpdateLocation(int userId, double latitude, double longitude);
     }
 }
