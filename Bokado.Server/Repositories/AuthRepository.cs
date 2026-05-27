@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +9,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Identity;
 using Bokado.Server.Data;
 using Bokado.Server.Services;
-using System.Xml.Linq;
 using Google.Apis.Auth;
 
 namespace Bokado.Server.Repositories
@@ -51,12 +50,12 @@ namespace Bokado.Server.Repositories
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            int userId = await _context.Users.Where(u => u.Email == user.Email).Select(u=>u.UserId).FirstOrDefaultAsync();
+            int userId = await _context.Users.Where(u => u.Email == user.Email).Select(u => u.UserId).FirstOrDefaultAsync();
 
             return new AuthResultDTO
             {
                 Token = GenerateJwtToken(user),
-                User = new UserDto() { Email = user.Email, IsAdmin = false, UserId = userId, Username = user.Username}
+                User = new UserDto() { Email = user.Email, IsAdmin = false, UserId = userId, Username = user.Username }
             };
         }
 
@@ -67,9 +66,7 @@ namespace Bokado.Server.Repositories
                 throw new UnauthorizedAccessException("Invalid credentials");
 
             if (user.IsBanned && !user.IsAdmin)
-            {
                 throw new UnauthorizedAccessException("U SHALL NOT PASS!(u are banned, sorry 😢)");
-            }
 
             user.LastActive = DateTime.UtcNow;
 
@@ -79,13 +76,14 @@ namespace Bokado.Server.Repositories
                 User = new UserDto() { Email = user.Email, IsAdmin = user.IsAdmin, UserId = user.UserId, Username = user.Username }
             };
         }
+
         public async Task<AuthResultDTO> LoginWithGoogle(GoogleLoginDTO dto)
         {
             var settings = new GoogleJsonWebSignature.ValidationSettings
             {
                 Audience = new[] { _config["Google:ClientId"] }
             };
-        
+
             GoogleJsonWebSignature.Payload payload;
             try
             {
@@ -95,9 +93,9 @@ namespace Bokado.Server.Repositories
             {
                 throw new UnauthorizedAccessException("Невірний Google токен");
             }
-        
+
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == payload.Email);
-        
+
             if (user == null)
             {
                 user = new User
@@ -111,13 +109,13 @@ namespace Bokado.Server.Repositories
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
             }
-        
+
             if (user.IsBanned && !user.IsAdmin)
                 throw new UnauthorizedAccessException("U SHALL NOT PASS!(u are banned, sorry 😢)");
-        
+
             user.LastActive = DateTime.UtcNow;
             await _context.SaveChangesAsync();
-        
+
             return new AuthResultDTO
             {
                 Token = GenerateJwtToken(user),
@@ -130,27 +128,22 @@ namespace Bokado.Server.Repositories
                 }
             };
         }
-                public async Task<IdentityResult> ResetPassword(string email)
+
+        public async Task<IdentityResult> ResetPassword(string email)
         {
             User? user = await _context.Users.Where(u => u.Email == email).FirstOrDefaultAsync();
 
             if (user == null)
-            {
-                return IdentityResult.Failed(new IdentityError { Description = "User was not found"});
-            }
+                return IdentityResult.Failed(new IdentityError { Description = "User was not found" });
 
             string password = GenerateRandomPassword();
+            string text = $"Hi dear {user.Username}. Your password was reset to {password}. Have a nice day.";
 
-            string text = $"Hi dear {user.Username}. " +
-                $"Your password was reset to {password}. " +
-                $"Have a nice day.";
             try
             {
                 bool emailSended = await _emailService.SendEmailAsync(email, "Password Reset", text, user.Username);
                 if (!emailSended)
-                {
                     return IdentityResult.Failed(new IdentityError { Description = "Не вдалося відправити повідомлення" });
-                }
             }
             catch
             {
@@ -158,48 +151,11 @@ namespace Bokado.Server.Repositories
             }
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
-
             await _context.SaveChangesAsync();
 
             return IdentityResult.Success;
         }
-        public async Task<AuthResultDTO> LoginWithGoogle(GoogleLoginDTO dto)
-{
-    var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
 
-    if (user == null)
-    {
-        // Створюємо нового користувача
-        user = new User
-        {
-            Username = dto.Name.Replace(" ", "_"),
-            Email = dto.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
-            BirthDate = DateTime.UtcNow,
-            AvatarUrl = null
-        };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-    }
-
-    if (user.IsBanned && !user.IsAdmin)
-        throw new UnauthorizedAccessException("U SHALL NOT PASS!(u are banned, sorry 😢)");
-
-    user.LastActive = DateTime.UtcNow;
-    await _context.SaveChangesAsync();
-
-    return new AuthResultDTO
-    {
-        Token = GenerateJwtToken(user),
-        User = new UserDto
-        {
-            Email = user.Email,
-            IsAdmin = user.IsAdmin,
-            UserId = user.UserId,
-            Username = user.Username
-        }
-    };
-}
         private string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
