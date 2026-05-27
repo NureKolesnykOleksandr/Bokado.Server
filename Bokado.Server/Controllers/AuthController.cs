@@ -48,7 +48,7 @@ namespace Bokado.Server.Controllers
                 return Unauthorized(ex.Message);
             }
         }
-        [HttpPost("login-with-google")]
+       [HttpPost("login-with-google")]
 public async Task<IActionResult> LoginWithGoogle([FromBody] GoogleLoginDTO dto)
 {
     try
