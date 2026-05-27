@@ -25,6 +25,8 @@ namespace Bokado.Server.Models
         public string? Status { get; set; }
         public int Level { get; set; } = 1;
         public string? City { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
         public bool IsPremium { get; set; } = false;
         public bool IsBanned { get; set; } = false;
         public bool IsAdmin { get; set; } = false;
