@@ -72,7 +72,20 @@ namespace Bokado.Server.Controllers
                 return NotFound(ex.Message);
             }
         }
-
+        [Authorize]
+        [HttpGet("by-city")]
+        public async Task<IActionResult> GetUsersByCity()
+        {
+            try
+            {
+                var users = await _userRepository.GetUsersWithCity();
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
         private (int userId, string role) GetUserIdAndRoleFromToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
