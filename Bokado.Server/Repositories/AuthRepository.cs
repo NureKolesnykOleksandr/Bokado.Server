@@ -112,7 +112,43 @@ namespace Bokado.Server.Repositories
 
             return IdentityResult.Success;
         }
+        public async Task<AuthResultDTO> LoginWithGoogle(GoogleLoginDTO dto)
+{
+    var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
 
+    if (user == null)
+    {
+        // Створюємо нового користувача
+        user = new User
+        {
+            Username = dto.Name.Replace(" ", "_"),
+            Email = dto.Email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
+            BirthDate = DateTime.UtcNow,
+            AvatarUrl = null
+        };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+    }
+
+    if (user.IsBanned && !user.IsAdmin)
+        throw new UnauthorizedAccessException("U SHALL NOT PASS!(u are banned, sorry 😢)");
+
+    user.LastActive = DateTime.UtcNow;
+    await _context.SaveChangesAsync();
+
+    return new AuthResultDTO
+    {
+        Token = GenerateJwtToken(user),
+        User = new UserDto
+        {
+            Email = user.Email,
+            IsAdmin = user.IsAdmin,
+            UserId = user.UserId,
+            Username = user.Username
+        }
+    };
+}
         private string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
