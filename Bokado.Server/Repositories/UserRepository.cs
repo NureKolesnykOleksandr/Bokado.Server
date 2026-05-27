@@ -36,11 +36,13 @@ namespace Bokado.Server.Repositories
                 Bio = user.Bio,
                 BirthDate = user.BirthDate,
                 City = user.City,
+                Latitude = user.Latitude,
+                Longitude = user.Longitude,
                 CreatedAt = user.CreatedAt,
                 IsAdmin = user.IsAdmin,
-                IsBanned = user.IsBanned, 
-                IsPremium = user.IsPremium, 
-                LastActive = user.LastActive, 
+                IsBanned = user.IsBanned,
+                IsPremium = user.IsPremium,
+                LastActive = user.LastActive,
                 Level = user.Level,
                 UserId = userId,
                 Username = user.Username
@@ -82,6 +84,8 @@ namespace Bokado.Server.Repositories
                 Bio = user.Bio,
                 BirthDate = user.BirthDate,
                 City = user.City,
+                Latitude = user.Latitude,
+                Longitude = user.Longitude,
                 CreatedAt = user.CreatedAt,
                 IsAdmin = user.IsAdmin,
                 IsBanned = user.IsBanned,
@@ -97,9 +101,9 @@ namespace Bokado.Server.Repositories
                 Messages = user.Messages,
                 UserChallenges = user.UserChallenges,
                 UserInterests = interests
-                 
             };
         }
+
         public async Task UpdateUserProfile(int userId, UpdateUserDto user)
         {
             var localUser = await _context.Users
@@ -150,7 +154,7 @@ namespace Bokado.Server.Repositories
                     {
                         var newInterest = new Interest { Name = interestName };
                         _context.Interests.Add(newInterest);
-                        await _context.SaveChangesAsync(); 
+                        await _context.SaveChangesAsync();
                         existingInterests.Add(newInterest);
                     }
                 }
@@ -189,7 +193,7 @@ namespace Bokado.Server.Repositories
             return result;
         }
 
-       public async Task<UserOnlineStatusDto> GetOnlineStatus(int userId)
+        public async Task<UserOnlineStatusDto> GetOnlineStatus(int userId)
         {
             var user = await _context.Users
                 .Where(u => u.UserId == userId)
@@ -205,6 +209,15 @@ namespace Bokado.Server.Repositories
             };
         }
 
+        public async Task UpdateLocation(int userId, double latitude, double longitude)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) throw new KeyNotFoundException("Користувача не знайдено");
+            user.Latitude = latitude;
+            user.Longitude = longitude;
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<IEnumerable<UserInfoDto>> GetUsersWithCity()
         {
             return await _context.Users
@@ -215,6 +228,8 @@ namespace Bokado.Server.Repositories
                     Username = u.Username,
                     AvatarUrl = u.AvatarUrl,
                     City = u.City,
+                    Latitude = u.Latitude,
+                    Longitude = u.Longitude,
                     Level = u.Level,
                     IsPremium = u.IsPremium
                 })
