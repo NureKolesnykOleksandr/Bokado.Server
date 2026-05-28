@@ -225,12 +225,8 @@ namespace Bokado.Server.Repositories
             await _context.SaveChangesAsync();
 
             // 🔔 Сповіщення власнику групи
-            if (group.CreatorId != userId)
-            {
-                var joiner = await _context.Users.FindAsync(userId);
-                if (joiner != null)
-                    await _notifications.GroupJoinedAsync(group.CreatorId, userId, joiner.Username, groupId, group.Name);
-            }
+            if (group.CreatorId != userId && joiner != null)
+                await _notifications.GroupJoinedAsync(group.CreatorId, userId, joiner.Username, groupId, group.Name);
 
             return IdentityResult.Success;
         }
