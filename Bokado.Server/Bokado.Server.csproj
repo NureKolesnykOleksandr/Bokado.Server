@@ -24,6 +24,7 @@
     <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.9.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.0" />
   </ItemGroup>
   <ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="https://json.schemastore.org/artifacthub-repo.json" /></VisualStudio></ProjectExtensions>
 </Project>
