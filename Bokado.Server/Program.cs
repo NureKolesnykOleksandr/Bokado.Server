@@ -1,4 +1,5 @@
 using Bokado.Server.Data;
+using Bokado.Server.Hubs;
 using Bokado.Server.Interfaces;
 using Bokado.Server.Repositories;
 using Bokado.Server.Services;
@@ -11,6 +12,7 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 
 var rawUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
@@ -48,6 +50,7 @@ builder.Services.AddDbContext<SocialNetworkContext>(options =>
 
 builder.Services.AddScoped<EmailService, EmailService>();
 builder.Services.AddSingleton<FileService, FileService>();
+builder.Services.AddScoped<NotificationService>();
 
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IStatisticRepository, StatisticRepository>();
@@ -88,6 +91,22 @@ builder.Services.AddAuthentication(options =>
 
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
+    };
+
+    // SignalR передає токен через query string ?access_token=...
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) &&
+                path.StartsWithSegments("/hubs/notifications"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -135,11 +154,11 @@ builder.Services.AddCors(options =>
             "https://www.bokado.website",
             "http://bokado.website",
             "http://www.bokado.website"
-)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials()
-              .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
+        )
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials()
+        .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
     });
 });
 
@@ -175,5 +194,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();
