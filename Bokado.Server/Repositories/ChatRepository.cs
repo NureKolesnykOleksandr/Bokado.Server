@@ -12,11 +12,13 @@ namespace Bokado.Server.Repositories
     {
         private readonly SocialNetworkContext _context;
         private readonly FileService _fileService;
+        private readonly NotificationService _notifications;
 
-        public ChatRepository(SocialNetworkContext context, FileService fileService)
+        public ChatRepository(SocialNetworkContext context, FileService fileService, NotificationService notifications)
         {
             _context = context;
             _fileService = fileService;
+            _notifications = notifications;
         }
 
         public async Task<List<ChatDto>> GetChats(int userId)
@@ -279,6 +281,19 @@ namespace Bokado.Server.Repositories
 
             _context.Messages.Add(message);
             await _context.SaveChangesAsync();
+
+            var isGroupChat = await _context.Groups.AnyAsync(g => g.ChatId == chat.ChatId);
+            if (!isGroupChat)
+            {
+                var recipient = await _context.ChatParticipants
+                    .Where(cp => cp.ChatId == chat.ChatId && cp.UserId != fromId)
+                    .Select(cp => cp.UserId)
+                    .FirstOrDefaultAsync();
+
+                if (recipient != 0)
+                    await _notifications.NewMessageAsync(recipient, fromId, sender.Username, chat.ChatId);
+            }
+
             return IdentityResult.Success;
         }
     }
