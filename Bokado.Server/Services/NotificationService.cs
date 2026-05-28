@@ -1,8 +1,8 @@
+// Services/NotificationService.cs
 using Bokado.Server.Data;
 using Bokado.Server.Hubs;
 using Bokado.Server.Models;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 
 namespace Bokado.Server.Services
 {
@@ -29,7 +29,7 @@ namespace Bokado.Server.Services
             string message,
             string? link = null)
         {
-            // 1. Зберігаємо в БД
+            // 1. Зберігаємо в БД — чекаємо
             var notification = new Notification
             {
                 UserId    = toUserId,
@@ -43,22 +43,30 @@ namespace Bokado.Server.Services
             _db.Notifications.Add(notification);
             await _db.SaveChangesAsync();
 
-            // 2. Real-time через SignalR
-            var payload = new
+            // 2. SignalR і Email — у фоні, без await
+            // HTTP запит не чекає на SignalR — вирішує проблему зависання на Railway
+            _ = Task.Run(async () =>
             {
-                notification.NotificationId,
-                notification.Type,
-                notification.Message,
-                notification.Link,
-                notification.CreatedAt,
-                IsRead = false,
-            };
-            await _hub.Clients
-                .Group($"user_{toUserId}")
-                .SendAsync("ReceiveNotification", payload);
+                try
+                {
+                    var payload = new
+                    {
+                        notification.NotificationId,
+                        notification.Type,
+                        notification.Message,
+                        notification.Link,
+                        notification.CreatedAt,
+                        IsRead = false,
+                    };
+                    await _hub.Clients
+                        .Group($"user_{toUserId}")
+                        .SendAsync("ReceiveNotification", payload);
+                }
+                catch { /* не блокуємо */ }
 
-            // 3. Email — використовуємо існуючий SendEmailAsync
-            await TrySendEmailAsync(toUserId, message);
+                try { await TrySendEmailAsync(toUserId, message); }
+                catch { /* не блокуємо */ }
+            });
         }
 
         public Task FriendRequestAsync(int toUserId, int fromUserId, string fromUsername)
@@ -83,19 +91,15 @@ namespace Bokado.Server.Services
 
         private async Task TrySendEmailAsync(int userId, string message)
         {
-            try
-            {
-                var user = await _db.Users.FindAsync(userId);
-                if (user?.Email == null) return;
+            var user = await _db.Users.FindAsync(userId);
+            if (user?.Email == null) return;
 
-                await _email.SendEmailAsync(
-                    recipientEmail: user.Email,
-                    subject: "Нове сповіщення від Bokado",
-                    body: $"Привіт, {user.Username}!\n\n{message}\n\nВідкрити Bokado: https://bokado.website",
-                    recipientName: user.Username
-                );
-            }
-            catch { /* не блокуємо основний flow */ }
+            await _email.SendEmailAsync(
+                recipientEmail: user.Email,
+                subject: "Нове сповіщення від Bokado",
+                body: $"Привіт, {user.Username}!\n\n{message}\n\nВідкрити Bokado: https://bokado.website",
+                recipientName: user.Username
+            );
         }
     }
 }
