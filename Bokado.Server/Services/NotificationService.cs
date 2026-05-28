@@ -21,6 +21,7 @@ namespace Bokado.Server.Services
             _hub = hub;
             _email = email;
         }
+
         public async Task SendAsync(
             int toUserId,
             int? actorId,
@@ -56,34 +57,29 @@ namespace Bokado.Server.Services
                 .Group($"user_{toUserId}")
                 .SendAsync("ReceiveNotification", payload);
 
-            // 3. Email (тільки якщо юзер не онлайн — можна розширити пізніше)
+            // 3. Email — використовуємо існуючий SendEmailAsync
             await TrySendEmailAsync(toUserId, message);
         }
 
         public Task FriendRequestAsync(int toUserId, int fromUserId, string fromUsername)
             => SendAsync(toUserId, fromUserId, NotificationType.FriendRequest,
-                $"{fromUsername} надіслав(ла) вам запит у друзі",
-                "/requests");
+                $"{fromUsername} надіслав(ла) вам запит у друзі", "/requests");
 
         public Task NewMessageAsync(int toUserId, int fromUserId, string fromUsername, int chatId)
             => SendAsync(toUserId, fromUserId, NotificationType.NewMessage,
-                $"{fromUsername}: нове повідомлення",
-                $"/chat/{chatId}");
+                $"{fromUsername}: нове повідомлення", $"/chat/{chatId}");
 
         public Task EventJoinedAsync(int eventOwnerId, int joinerId, string joinerUsername, int eventId, string eventTitle)
             => SendAsync(eventOwnerId, joinerId, NotificationType.EventJoined,
-                $"{joinerUsername} приєднався до вашої події «{eventTitle}»",
-                $"/events");
+                $"{joinerUsername} приєднався до вашої події «{eventTitle}»", "/events");
 
         public Task GroupJoinedAsync(int groupOwnerId, int joinerId, string joinerUsername, int groupId, string groupName)
             => SendAsync(groupOwnerId, joinerId, NotificationType.GroupJoined,
-                $"{joinerUsername} вступив до групи «{groupName}»",
-                $"/groups/{groupId}");
+                $"{joinerUsername} вступив до групи «{groupName}»", $"/groups/{groupId}");
 
         public Task ChallengeCompletedAsync(int userId, string username, string challengeTitle)
             => SendAsync(userId, null, NotificationType.ChallengeCompleted,
-                $"🎉 Вітаємо! Ви виконали челендж «{challengeTitle}»",
-                "/challenges");
+                $"🎉 Вітаємо! Ви виконали челендж «{challengeTitle}»", "/challenges");
 
         private async Task TrySendEmailAsync(int userId, string message)
         {
@@ -91,7 +87,13 @@ namespace Bokado.Server.Services
             {
                 var user = await _db.Users.FindAsync(userId);
                 if (user?.Email == null) return;
-                await _email.SendNotificationEmailAsync(user.Email, user.Username, message);
+
+                await _email.SendEmailAsync(
+                    recipientEmail: user.Email,
+                    subject: "Нове сповіщення від Bokado",
+                    body: $"Привіт, {user.Username}!\n\n{message}\n\nВідкрити Bokado: https://bokado.website",
+                    recipientName: user.Username
+                );
             }
             catch { /* не блокуємо основний flow */ }
         }
