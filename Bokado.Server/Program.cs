@@ -5,6 +5,7 @@ using Bokado.Server.Repositories;
 using Bokado.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
@@ -46,7 +47,8 @@ else
 }
 
 builder.Services.AddDbContext<SocialNetworkContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(connectionString)
+           .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
 builder.Services.AddScoped<EmailService, EmailService>();
 builder.Services.AddSingleton<FileService, FileService>();
