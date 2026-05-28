@@ -1,7 +1,8 @@
-﻿using Bokado.Server.Data;
+using Bokado.Server.Data;
 using Bokado.Server.Dtos;
 using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
+using Bokado.Server.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
@@ -11,18 +12,18 @@ namespace Bokado.Server.Repositories
     public class EventRepository : IEventRepository
     {
         SocialNetworkContext _context;
+        private readonly NotificationService _notifications;
 
-        public EventRepository(SocialNetworkContext context)
+        public EventRepository(SocialNetworkContext context, NotificationService notifications)
         {
             _context = context;
+            _notifications = notifications;
         }
 
         public async Task<Event> CreateEvent(CreateEventDto eventDto, int creatorId)
         {
             if (eventDto.Maximum < 2)
-            {
                 throw new ValidationException("You can`t create event with less then 2 participants");
-            }
 
             var newEvent = new Event()
             {
@@ -36,7 +37,6 @@ namespace Bokado.Server.Repositories
             };
 
             await _context.Events.AddAsync(newEvent);
-
             await _context.SaveChangesAsync();
 
             var participant = new EventParticipant()
@@ -51,7 +51,6 @@ namespace Bokado.Server.Repositories
 
             return newEvent;
         }
-
 
         public async Task<List<GetEventDto>> GetEvents()
         {
@@ -104,36 +103,43 @@ namespace Bokado.Server.Repositories
 
         public async Task<IdentityResult> JoinEvent(int eventId, int userId)
         {
-            var Event = await _context.Events.Where(e => e.EventId == eventId).FirstOrDefaultAsync();
-            if (Event == null)
-            {
+            var ev = await _context.Events.Where(e => e.EventId == eventId).FirstOrDefaultAsync();
+            if (ev == null)
                 return IdentityResult.Failed(new IdentityError { Description = "Цього івенту не існує" });
-            }
 
             if (await _context.EventParticipants.AnyAsync(ep => ep.EventId == eventId && ep.UserId == userId))
-            {
-                return IdentityResult.Failed(new IdentityError { Description = "Ви вже приймаєте участь у цьому івенті"});
-            }
+                return IdentityResult.Failed(new IdentityError { Description = "Ви вже приймаєте участь у цьому івенті" });
 
-
-            if (await _context.EventParticipants.Where(ep => ep.EventId == eventId).CountAsync() >= Event.Maximum)
-            {
+            if (await _context.EventParticipants.Where(ep => ep.EventId == eventId).CountAsync() >= ev.Maximum)
                 return IdentityResult.Failed(new IdentityError { Description = "Максимум людей вже була досягнута" });
-            }
-            
-            var newParticipant = _context.EventParticipants.Add(new EventParticipant() { EventId = eventId, UserId = userId, JoinedAt = DateTime.UtcNow });
+
+            _context.EventParticipants.Add(new EventParticipant
+            {
+                EventId = eventId,
+                UserId = userId,
+                JoinedAt = DateTime.UtcNow
+            });
             await _context.SaveChangesAsync();
+
+            // 🔔 Сповіщення організатору (якщо не сам організатор)
+            if (ev.CreatorId != userId)
+            {
+                var joiner = await _context.Users.FindAsync(userId);
+                if (joiner != null)
+                    await _notifications.EventJoinedAsync(ev.CreatorId, userId, joiner.Username, eventId, ev.Title);
+            }
+
             return IdentityResult.Success;
         }
 
         public async Task<IdentityResult> QuitEvent(int eventId, int userId)
         {
-            var user = await _context.EventParticipants.Where(ep => ep.UserId == userId && ep.EventId == eventId).FirstOrDefaultAsync();
+            var user = await _context.EventParticipants
+                .Where(ep => ep.UserId == userId && ep.EventId == eventId)
+                .FirstOrDefaultAsync();
 
             if (user == null)
-            {
                 return IdentityResult.Failed(new IdentityError() { Description = "Вашої участі у цьому івенту не було знайдено" });
-            }
 
             _context.EventParticipants.Remove(user);
             await _context.SaveChangesAsync();
@@ -143,31 +149,24 @@ namespace Bokado.Server.Repositories
 
         public async Task<IdentityResult> UpdateEvent(int eventId, int userId, UpdateEventDto eventDto)
         {
-            var Event = await _context.Events.FindAsync(eventId);
+            var ev = await _context.Events.FindAsync(eventId);
             var user = await _context.Users.FindAsync(userId);
 
-            if (Event == null)
-            {
-                return IdentityResult.Failed(new IdentityError {  Description = "Event was not found"});
-            }
+            if (ev == null)
+                return IdentityResult.Failed(new IdentityError { Description = "Event was not found" });
             if (user == null)
-            {
                 return IdentityResult.Failed(new IdentityError { Description = "User was not found" });
-            }
-            if (Event.CreatorId != userId && !user.IsAdmin)
-            {
+            if (ev.CreatorId != userId && !user.IsAdmin)
                 return IdentityResult.Failed(new IdentityError { Description = "You don`t have permission to update this Event" });
-            }
 
-            Event.Title = eventDto.Title ?? Event.Title;
-            Event.Description = eventDto.Description ?? Event.Description;
-            Event.Date = eventDto.Date ?? Event.Date;
-            Event.City = eventDto.City ?? Event.City;
+            ev.Title = eventDto.Title ?? ev.Title;
+            ev.Description = eventDto.Description ?? ev.Description;
+            ev.Date = eventDto.Date ?? ev.Date;
+            ev.City = eventDto.City ?? ev.City;
 
             await _context.SaveChangesAsync();
 
             return IdentityResult.Success;
-
         }
     }
 }
