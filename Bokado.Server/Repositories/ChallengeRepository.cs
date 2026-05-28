@@ -1,4 +1,5 @@
-﻿using Bokado.Server.Data;
+using Bokado.Server.Data;
+using Bokado.Server.Services;
 using Bokado.Server.Dtos;
 using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
@@ -11,12 +12,14 @@ namespace Bokado.Server.Repositories
     public class ChallengeRepository : IChallengeRepository
     {
         private readonly SocialNetworkContext _context;
+        private readonly NotificationService _notifications;
 
         Dictionary<int, Func<int, bool>> conditions;
 
-        public ChallengeRepository(SocialNetworkContext context)
+        public ChallengeRepository(SocialNetworkContext context, NotificationService notifications)
         {
             _context = context;
+            _notifications = notifications;
             InitializeChallenges();
         }
 
@@ -169,6 +172,10 @@ namespace Bokado.Server.Repositories
 
                     await _context.SaveChangesAsync();
 
+                    // 🔔 Сповіщення про виконання челенджу
+                    var user = await _context.Users.FindAsync(userId);
+                    if (user != null)
+                        await _notifications.ChallengeCompletedAsync(userId, user.Username, challenge.Title);
 
                     return IdentityResult.Success;
                 }
