@@ -2,6 +2,7 @@ using Bokado.Server.Data;
 using Bokado.Server.Dtos;
 using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
+using Bokado.Server.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,11 +11,13 @@ namespace Bokado.Server.Repositories
     public class FriendsRepository : IFriendsRepository
     {
         private readonly SocialNetworkContext _context;
+        private readonly NotificationService _notifications;
         private const int SearchResultsLimit = 5;
 
-        public FriendsRepository(SocialNetworkContext context)
+        public FriendsRepository(SocialNetworkContext context, NotificationService notifications)
         {
             _context = context;
+            _notifications = notifications;
         }
 
         public async Task<IdentityResult> SendFriendRequest(int fromId, int toId)
@@ -43,6 +46,12 @@ namespace Bokado.Server.Repositories
                 SentAt = DateTime.UtcNow
             });
             await _context.SaveChangesAsync();
+
+            // 🔔 Сповіщення
+            var fromUser = await _context.Users.FindAsync(fromId);
+            if (fromUser != null)
+                await _notifications.FriendRequestAsync(toId, fromId, fromUser.Username);
+
             return IdentityResult.Success;
         }
 
