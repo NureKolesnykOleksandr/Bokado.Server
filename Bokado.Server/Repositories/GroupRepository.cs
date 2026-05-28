@@ -1,4 +1,5 @@
 using Bokado.Server.Data;
+using Bokado.Server.Services;
 using Bokado.Server.Dtos;
 using Bokado.Server.Interfaces;
 using Bokado.Server.Models;
@@ -10,10 +11,12 @@ namespace Bokado.Server.Repositories
     public class GroupRepository : IGroupRepository
     {
         private readonly SocialNetworkContext _context;
+        private readonly NotificationService _notifications;
 
-        public GroupRepository(SocialNetworkContext context)
+        public GroupRepository(SocialNetworkContext context, NotificationService notifications)
         {
             _context = context;
+            _notifications = notifications;
         }
 
         public async Task<List<GetGroupDto>> GetGroups()
@@ -220,6 +223,15 @@ namespace Bokado.Server.Repositories
             });
 
             await _context.SaveChangesAsync();
+
+            // 🔔 Сповіщення власнику групи
+            if (group.CreatorId != userId)
+            {
+                var joiner = await _context.Users.FindAsync(userId);
+                if (joiner != null)
+                    await _notifications.GroupJoinedAsync(group.CreatorId, userId, joiner.Username, groupId, group.Name);
+            }
+
             return IdentityResult.Success;
         }
 
