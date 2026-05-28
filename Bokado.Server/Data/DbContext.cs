@@ -29,6 +29,7 @@ namespace Bokado.Server.Data
         public DbSet<GroupInterest> GroupInterests { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<PostLike> PostLikes { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
 
         public SocialNetworkContext(DbContextOptions<SocialNetworkContext> options): base(options) { }
